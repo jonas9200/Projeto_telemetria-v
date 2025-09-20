@@ -1161,6 +1161,30 @@
                     'GPS_Longitude': 'gpsLonDisplay'
                 };
                 
+                // CORREÇÃO: Processar horários de programação PRIMEIRO
+                if (data['Hora_inicio'] && data['Hora_fim']) {
+                    const scheduleTimeElement = statusElements.scheduleTimeText;
+                    if (scheduleTimeElement) {
+                        scheduleTimeElement.textContent = `${data['Hora_inicio']} às ${data['Hora_fim']}`;
+                        console.log(`Horários atualizados: ${data['Hora_inicio']} às ${data['Hora_fim']}`);
+                    }
+                } else {
+                    // Debug: Verificar quais campos de horário estão chegando
+                    const timeFields = Object.keys(data).filter(key => 
+                        key.toLowerCase().includes('hora') || 
+                        key.toLowerCase().includes('inicio') || 
+                        key.toLowerCase().includes('fim') ||
+                        key.toLowerCase().includes('start') ||
+                        key.toLowerCase().includes('end')
+                    );
+                    if (timeFields.length > 0) {
+                        console.log('Campos de horário encontrados:', timeFields);
+                        timeFields.forEach(field => {
+                            console.log(`${field}: ${data[field]}`);
+                        });
+                    }
+                }
+                
                 Object.entries(data).forEach(([key, value]) => {
                     const elementKey = mappings[key];
                     if (elementKey && statusElements[elementKey]) {
@@ -1174,9 +1198,8 @@
                         
                         statusElements[elementKey].textContent = displayValue;
                         
-                        // Tratamento especial para horários de programação
-                        if (key === 'Hora_inicio' && data['Hora_fim']) {
-                            statusElements.scheduleTimeText.textContent = `${data['Hora_inicio']} às ${data['Hora_fim']}`;
+                        // Pular processamento de horários individuais (já processados acima)
+                        if (key === 'Hora_inicio' || key === 'Hora_fim') {
                             return;
                         }
                         
