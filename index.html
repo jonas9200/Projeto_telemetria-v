@@ -1541,7 +1541,8 @@
                                     updateDeviceOnlineStatus(data.online);
                                 }
                             } else if (topic === MQTT_CONFIG.CONFIG_TOPIC) {
-                                processReceivedConfig(data);
+                                // Processar como dados de status normais
+                                updateStatusDisplay(data);
                             }
                         } catch (e) {
                             console.warn('Payload não é JSON válido:', payload);
@@ -1618,16 +1619,6 @@
                 }
             }
             
-            function requestCurrentConfig() {
-                const request = JSON.stringify({
-                    action: "get_config",
-                    timestamp: Date.now(),
-                    source: "WebInterface"
-                });
-                publishMessage(MQTT_CONFIG.CONFIG_TOPIC, request);
-                showSuccess('Configurações solicitadas');
-            }
-            
             // ===== EVENT LISTENERS =====
             
             function setupEventListeners() {
@@ -1669,9 +1660,6 @@
                 // Botões de conexão
                 elements.disconnectBtn?.addEventListener('click', disconnectFromBroker);
                 elements.reconnectBtn?.addEventListener('click', reconnectToBroker);
-                
-                // Solicitar configurações
-                document.getElementById('request-config')?.addEventListener('click', requestCurrentConfig);
                 
                 // Comandos básicos do sistema
                 const basicCommands = {
