@@ -1127,6 +1127,43 @@
                 }
             }
             
+            // ===== FUNÇÃO PARA ATUALIZAR CHECKBOXES DA PROGRAMAÇÃO =====
+            function updateScheduleCheckboxes(daysMask, startTime, endTime) {
+                console.log('Atualizando checkboxes da programação:', { daysMask, startTime, endTime });
+                
+                // Atualizar checkboxes dos dias da semana
+                if (daysMask !== undefined && daysMask !== null) {
+                    const weekdays = ['dom', 'seg', 'ter', 'qua', 'qui', 'sex', 'sab'];
+                    const mask = parseInt(daysMask);
+                    
+                    weekdays.forEach((day, index) => {
+                        const checkbox = document.getElementById(day);
+                        if (checkbox) {
+                            const isChecked = (mask & (1 << index)) !== 0;
+                            checkbox.checked = isChecked;
+                            console.log(`${day} (bit ${index}): ${isChecked}`);
+                        }
+                    });
+                }
+                
+                // Atualizar horários se recebidos
+                if (startTime) {
+                    const startInput = document.getElementById('start-time');
+                    if (startInput) {
+                        startInput.value = startTime;
+                        console.log(`Horário início atualizado: ${startTime}`);
+                    }
+                }
+                
+                if (endTime) {
+                    const endInput = document.getElementById('stop-time');
+                    if (endInput) {
+                        endInput.value = endTime;
+                        console.log(`Horário fim atualizado: ${endTime}`);
+                    }
+                }
+            }
+            
             function updateStatusDisplay(data) {
                 const mappings = {
                     // Campos básicos
@@ -1161,6 +1198,13 @@
                     'GPS_Longitude': 'gpsLonDisplay'
                 };
                 
+                // Variáveis para armazenar dados da programação
+                let scheduleData = {
+                    daysMask: null,
+                    startTime: null,
+                    endTime: null
+                };
+                
                 // CORREÇÃO: Processar horários de programação PRIMEIRO
                 if (data['Hora_inicio'] && data['Hora_fim']) {
                     const scheduleTimeElement = statusElements.scheduleTimeText;
@@ -1168,6 +1212,10 @@
                         scheduleTimeElement.textContent = `${data['Hora_inicio']} às ${data['Hora_fim']}`;
                         console.log(`Horários atualizados: ${data['Hora_inicio']} às ${data['Hora_fim']}`);
                     }
+                    
+                    // Armazenar para atualizar os inputs
+                    scheduleData.startTime = data['Hora_inicio'];
+                    scheduleData.endTime = data['Hora_fim'];
                 } else {
                     // Debug: Verificar quais campos de horário estão chegando
                     const timeFields = Object.keys(data).filter(key => 
@@ -1183,6 +1231,12 @@
                             console.log(`${field}: ${data[field]}`);
                         });
                     }
+                }
+                
+                // Capturar máscara de dias para atualizar checkboxes
+                if (data['Mascara_dias'] !== undefined) {
+                    scheduleData.daysMask = data['Mascara_dias'];
+                    console.log('Máscara de dias recebida:', scheduleData.daysMask);
                 }
                 
                 Object.entries(data).forEach(([key, value]) => {
@@ -1230,21 +1284,47 @@
                             const sisToggle = document.getElementById('sis-toggle');
                             const sisText = document.getElementById('sis-status-text');
                             const isActive = value.toUpperCase() === 'ATIVADA';
-                            sisToggle.checked = isActive;
-                            sisText.textContent = isActive ? 'Ativado' : 'Desativado';
-                            sisEnabled = isActive;
+                            if (sisToggle && sisText) {
+                                sisToggle.checked = isActive;
+                                sisText.textContent = isActive ? 'Ativado' : 'Desativado';
+                                sisEnabled = isActive;
+                            }
                         }
                         
                         if (key === 'Programacao_ativa') {
                             const scheduleToggle = document.getElementById('schedule-toggle');
                             const scheduleText = document.getElementById('schedule-status-text');
                             const isActive = value.toUpperCase() === 'SIM';
-                            scheduleToggle.checked = isActive;
-                            scheduleText.textContent = isActive ? 'Ativado' : 'Desativado';
-                            scheduleEnabled = isActive;
+                            if (scheduleToggle && scheduleText) {
+                                scheduleToggle.checked = isActive;
+                                scheduleText.textContent = isActive ? 'Ativado' : 'Desativado';
+                                scheduleEnabled = isActive;
+                            }
+                        }
+                        
+                        // ===== ATUALIZAR CAMPOS DOS INPUTS DE CONFIGURAÇÃO =====
+                        if (key === 'Grau_alvo') {
+                            const targetDegreeInput = document.getElementById('target-degree');
+                            if (targetDegreeInput && value !== undefined) {
+                                targetDegreeInput.value = parseFloat(value);
+                            }
+                        }
+                        
+                        if (key === 'Tolerancia_graus') {
+                            const toleranceInput = document.getElementById('degree-tolerance');
+                            if (toleranceInput && value !== undefined) {
+                                toleranceInput.value = parseFloat(value);
+                            }
                         }
                     }
                 });
+                
+                // ===== ATUALIZAR CHECKBOXES E INPUTS DA PROGRAMAÇÃO =====
+                // Chama a função para atualizar os checkboxes após processar todos os dados
+                if (scheduleData.daysMask !== null || scheduleData.startTime || scheduleData.endTime) {
+                    console.log('Atualizando formulário de programação com:', scheduleData);
+                    updateScheduleCheckboxes(scheduleData.daysMask, scheduleData.startTime, scheduleData.endTime);
+                }
                 
                 // Atualizar timestamp se não recebido
                 if (!data.Ultima_atualizacao) {
