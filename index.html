@@ -660,16 +660,25 @@
                         <button class="btn-success" id="send-config" disabled>
                             <i class="fas fa-paper-plane"></i> Enviar Configurações
                         </button>
-                        
-                        <button class="btn-info" id="request-config" disabled>
-                            <i class="fas fa-sync-alt"></i> Solicitar Configurações Atuais
-                        </button>
                     </div>
                     
                     <div class="card">
-                        <h2><i class="fas fa-list"></i> Configurações Recebidas</h2>
-                        <div id="received-config" style="background: rgba(0,0,0,0.3); padding: 15px; border-radius: 5px; min-height: 200px; overflow-y: auto; font-family: monospace; font-size: 0.9rem;">
-                            <p>Aguardando configurações do dispositivo...</p>
+                        <h2><i class="fas fa-chart-line"></i> Status das Configurações</h2>
+                        <div class="status-value">
+                            <span class="status-label">Auto-preenchimento:</span>
+                            <span class="status-data">Ativo via Status MQTT</span>
+                        </div>
+                        <div class="status-value">
+                            <span class="status-label">Proteção de edição:</span>
+                            <span class="status-data">Ativa durante digitação</span>
+                        </div>
+                        <div class="status-value">
+                            <span class="status-label">Fonte dos dados:</span>
+                            <span class="status-data">Dispositivo via MQTT</span>
+                        </div>
+                        <div id="config-status" style="background: rgba(0,0,0,0.3); padding: 15px; border-radius: 5px; min-height: 100px; font-family: monospace; font-size: 0.9rem;">
+                            <div style="color: #4CAF50;">✓ Campos preenchidos automaticamente pelo status do dispositivo</div>
+                            <div style="color: #2196F3; margin-top: 10px;">📡 Aguardando dados via MQTT...</div>
                         </div>
                     </div>
                 </div>
@@ -861,7 +870,7 @@
             let currentEquipmentName = 'AGS Irrigação';
             let deviceOnlineStatus = false;
             
-            // ===== MAPEAMENTO DE CAMPOS DE CONFIGURAÇÃO =====
+            // ===== MAPEAMENTO DE CAMPOS DE CONFIGURAÇÃO EXPANDIDO =====
             const configFieldsMapping = {
                 'equipment_name': 'equipment-name',
                 'Nome_do_equipamento': 'equipment-name',
@@ -872,7 +881,13 @@
                 'flow_rate': 'flow-rate',
                 'Vazao': 'flow-rate',
                 'base_rotation_time': 'base-rotation-time',
-                'Tempo_de_volta_100': 'base-rotation-time'
+                'Tempo_de_volta_100': 'base-rotation-time',
+                'target_irrigation_depth': 'water-layer',
+                'Lamina': 'water-layer',
+                'Grau_alvo': 'target-degree',
+                'target_stop_degree': 'target-degree',
+                'Tolerancia_graus': 'degree-tolerance',
+                'degree_stop_tolerance': 'degree-tolerance'
             };
             
             // ===== ELEMENTOS DA UI =====
@@ -889,7 +904,7 @@
                 successMessage: document.getElementById('success-message'),
                 connectionStatusText: document.getElementById('connection-status-text'),
                 dynamicSubtitle: document.getElementById('dynamic-subtitle'),
-                receivedConfig: document.getElementById('received-config')
+                configStatus: document.getElementById('config-status')
             };
             
             // ===== ELEMENTOS DE STATUS =====
@@ -926,7 +941,7 @@
             const controlButtons = [
                 'start-btn', 'stop-btn', 'forward-btn', 'reverse-btn', 'water-btn',
                 'set-percentage', 'set-water-layer', 'set-target-degree', 'set-tolerance',
-                'send-config', 'send-schedule', 'request-config'
+                'send-config', 'send-schedule'
             ];
             
             // ===== FUNÇÕES DE UTILIDADE =====
@@ -1096,11 +1111,18 @@
                         
                         const fieldId = configFieldsMapping[key];
                         if (fieldId && value !== undefined && value !== null && value !== '') {
-                            const field = document.getElementById(fieldId);
-                            if (field) {
-                                field.value = value;
-                                fieldsUpdated++;
-                                console.log(`Campo ${fieldId} atualizado: ${value}`);
+                            // ===== PROTEÇÃO: Não atualizar campos em edição =====
+                            if (!userEditingFields.has(fieldId)) {
+                                const field = document.getElementById(fieldId);
+                                if (field) {
+                                    field.value = value;
+                                    fieldsUpdated++;
+                                    console.log(`Campo ${fieldId} atualizado: ${value}`);
+                                } else {
+                                    console.warn(`Campo ${fieldId} não encontrado no DOM`);
+                                }
+                            } else {
+                                console.log(`Campo ${fieldId} protegido (em edição), não atualizado`);
                             }
                         }
                     });
@@ -1108,7 +1130,9 @@
                     configDisplay += '</div>';
                     elements.receivedConfig.innerHTML = configDisplay;
                     
-                    if (configData.equipment_name || configData.Nome_do_equipamento) {
+                    // Atualizar nome do equipamento se não estiver sendo editado
+                    if ((configData.equipment_name || configData.Nome_do_equipamento) && 
+                        !userEditingFields.has('equipment-name')) {
                         const newName = configData.equipment_name || configData.Nome_do_equipamento;
                         if (newName && newName !== currentEquipmentName) {
                             currentEquipmentName = newName;
@@ -1127,8 +1151,87 @@
                 }
             }
             
-            // ===== FUNÇÃO PARA ATUALIZAR CHECKBOXES DA PROGRAMAÇÃO =====
+            // ===== SISTEMA DE CONTROLE DE EDIÇÃO =====
+            let userEditingFields = new Set(); // Campos que o usuário está editando
+            let pauseUpdates = false; // Flag global para pausar atualizações
+            
+            // Lista de campos que devem ser protegidos contra atualização automática
+            const protectedFields = [
+                'target-degree', 'degree-tolerance', 'percentage', 'water-layer',
+                'start-time', 'stop-time', 'equipment-name', 'pressure-timeout',
+                'pivot-radius', 'flow-rate', 'base-rotation-time'
+            ];
+            
+            // Lista de checkboxes da programação
+            const scheduleCheckboxes = ['dom', 'seg', 'ter', 'qua', 'qui', 'sex', 'sab'];
+            
+            function setupFieldProtection() {
+                console.log('Configurando proteção de campos em edição...');
+                
+                protectedFields.forEach(fieldId => {
+                    const field = document.getElementById(fieldId);
+                    if (field) {
+                        // Quando o usuário começa a editar
+                        field.addEventListener('focus', function() {
+                            userEditingFields.add(fieldId);
+                            pauseUpdates = true;
+                            console.log(`Campo ${fieldId} em edição. Updates pausados.`);
+                        });
+                        
+                        // Quando o usuário sai do campo
+                        field.addEventListener('blur', function() {
+                            userEditingFields.delete(fieldId);
+                            if (userEditingFields.size === 0) {
+                                pauseUpdates = false;
+                                console.log(`Campo ${fieldId} saiu de edição. Updates retomados.`);
+                            }
+                        });
+                        
+                        // Detectar digitação
+                        field.addEventListener('input', function() {
+                            userEditingFields.add(fieldId);
+                            pauseUpdates = true;
+                        });
+                    }
+                });
+                
+                // Proteção para checkboxes da programação
+                scheduleCheckboxes.forEach(checkboxId => {
+                    const checkbox = document.getElementById(checkboxId);
+                    if (checkbox) {
+                        checkbox.addEventListener('change', function() {
+                            userEditingFields.add('schedule-checkboxes');
+                            pauseUpdates = true;
+                            console.log('Checkboxes da programação modificados. Updates pausados.');
+                            
+                            // Remover proteção após 2 segundos se não houver mais interação
+                            setTimeout(() => {
+                                userEditingFields.delete('schedule-checkboxes');
+                                if (userEditingFields.size === 0) {
+                                    pauseUpdates = false;
+                                    console.log('Proteção dos checkboxes removida. Updates retomados.');
+                                }
+                            }, 2000);
+                        });
+                    }
+                });
+            }
+            
+            // Função para limpar proteção após envio de dados
+            function clearFieldProtection() {
+                userEditingFields.clear();
+                pauseUpdates = false;
+                console.log('Proteção de campos limpa após envio de dados.');
+            }
+            
+            // ===== FUNÇÃO PARA ATUALIZAR CHECKBOXES (MODIFICADA) =====
             function updateScheduleCheckboxes(daysMask, startTime, endTime) {
+                // Não atualizar se usuário está editando
+                if (userEditingFields.has('schedule-checkboxes')) {
+                    console.log('Checkboxes não atualizados - usuário editando');
+                    return;
+                }
+                
                 console.log('Atualizando checkboxes da programação:', { daysMask, startTime, endTime });
                 
                 // Atualizar checkboxes dos dias da semana
@@ -1146,8 +1249,8 @@
                     });
                 }
                 
-                // Atualizar horários se recebidos
-                if (startTime) {
+                // Atualizar horários se recebidos e não estão sendo editados
+                if (startTime && !userEditingFields.has('start-time')) {
                     const startInput = document.getElementById('start-time');
                     if (startInput) {
                         startInput.value = startTime;
@@ -1155,7 +1258,7 @@
                     }
                 }
                 
-                if (endTime) {
+                if (endTime && !userEditingFields.has('stop-time')) {
                     const endInput = document.getElementById('stop-time');
                     if (endInput) {
                         endInput.value = endTime;
@@ -1302,18 +1405,74 @@
                             }
                         }
                         
-                        // ===== ATUALIZAR CAMPOS DOS INPUTS DE CONFIGURAÇÃO =====
-                        if (key === 'Grau_alvo') {
+                        // ===== ATUALIZAR CAMPOS DOS INPUTS DE CONFIGURAÇÃO (PROTEGIDOS) =====
+                        if (key === 'Grau_alvo' && !userEditingFields.has('target-degree')) {
                             const targetDegreeInput = document.getElementById('target-degree');
                             if (targetDegreeInput && value !== undefined) {
                                 targetDegreeInput.value = parseFloat(value);
                             }
                         }
                         
-                        if (key === 'Tolerancia_graus') {
+                        if (key === 'Tolerancia_graus' && !userEditingFields.has('degree-tolerance')) {
                             const toleranceInput = document.getElementById('degree-tolerance');
                             if (toleranceInput && value !== undefined) {
                                 toleranceInput.value = parseFloat(value);
+                            }
+                        }
+                        
+                        if (key === 'Percentimetro' && !userEditingFields.has('percentage')) {
+                            const percentageInput = document.getElementById('percentage');
+                            if (percentageInput && value !== undefined) {
+                                const numValue = parseFloat(value);
+                                if (!isNaN(numValue)) {
+                                    percentageInput.value = numValue;
+                                }
+                            }
+                        }
+                        
+                        if (key === 'Lamina' && !userEditingFields.has('water-layer')) {
+                            const waterLayerInput = document.getElementById('water-layer');
+                            if (waterLayerInput && value !== undefined) {
+                                const numValue = parseFloat(value);
+                                if (!isNaN(numValue)) {
+                                    waterLayerInput.value = numValue;
+                                }
+                            }
+                        }
+                        
+                        // ===== CAMPOS DE CONFIGURAÇÃO DO SISTEMA =====
+                        if (key === 'Nome_do_equipamento' && !userEditingFields.has('equipment-name')) {
+                            const equipmentInput = document.getElementById('equipment-name');
+                            if (equipmentInput && value !== undefined) {
+                                equipmentInput.value = value;
+                            }
+                        }
+                        
+                        if (key === 'Tempo_de_pressao' && !userEditingFields.has('pressure-timeout')) {
+                            const pressureInput = document.getElementById('pressure-timeout');
+                            if (pressureInput && value !== undefined) {
+                                pressureInput.value = parseInt(value);
+                            }
+                        }
+                        
+                        if (key === 'Raio_do_pivo' && !userEditingFields.has('pivot-radius')) {
+                            const radiusInput = document.getElementById('pivot-radius');
+                            if (radiusInput && value !== undefined) {
+                                radiusInput.value = parseFloat(value);
+                            }
+                        }
+                        
+                        if (key === 'Vazao' && !userEditingFields.has('flow-rate')) {
+                            const flowInput = document.getElementById('flow-rate');
+                            if (flowInput && value !== undefined) {
+                                flowInput.value = parseFloat(value);
+                            }
+                        }
+                        
+                        if (key === 'Tempo_de_volta_100' && !userEditingFields.has('base-rotation-time')) {
+                            const timeInput = document.getElementById('base-rotation-time');
+                            if (timeInput && value !== undefined) {
+                                timeInput.value = parseFloat(value);
                             }
                         }
                     }
@@ -1373,8 +1532,14 @@
                             });
                         });
                         
-                        // Solicitar configurações após conectar
-                        setTimeout(requestCurrentConfig, 2000);
+                        // Aguardar alguns segundos para receber dados automáticos
+                        setTimeout(() => {
+                            if (elements.configStatus) {
+                                elements.configStatus.innerHTML = 
+                                    '<div style="color: #4CAF50;">✓ Conectado - Recebendo dados automáticos</div>' +
+                                    '<div style="color: #2196F3; margin-top: 10px;">📊 Dados de configuração atualizados via status</div>';
+                            }
+                        }, 3000);
                     });
                     
                     mqttClient.on('message', function(topic, message) {
@@ -1391,7 +1556,8 @@
                                     updateDeviceOnlineStatus(data.online);
                                 }
                             } else if (topic === MQTT_CONFIG.CONFIG_TOPIC) {
-                                processReceivedConfig(data);
+                                // Processar como dados de status normais
+                                updateStatusDisplay(data);
                             }
                         } catch (e) {
                             console.warn('Payload não é JSON válido:', payload);
@@ -1468,16 +1634,6 @@
                 }
             }
             
-            function requestCurrentConfig() {
-                const request = JSON.stringify({
-                    action: "get_config",
-                    timestamp: Date.now(),
-                    source: "WebInterface"
-                });
-                publishMessage(MQTT_CONFIG.CONFIG_TOPIC, request);
-                showSuccess('Configurações solicitadas');
-            }
-            
             // ===== EVENT LISTENERS =====
             
             function setupEventListeners() {
@@ -1519,9 +1675,6 @@
                 // Botões de conexão
                 elements.disconnectBtn?.addEventListener('click', disconnectFromBroker);
                 elements.reconnectBtn?.addEventListener('click', reconnectToBroker);
-                
-                // Solicitar configurações
-                document.getElementById('request-config')?.addEventListener('click', requestCurrentConfig);
                 
                 // Comandos básicos do sistema
                 const basicCommands = {
@@ -1570,6 +1723,8 @@
                             if (validateNumericInput(value, control.validation[0], control.validation[1], control.name)) {
                                 publishMessage(MQTT_CONFIG.COMMAND_TOPIC, `${control.prefix}${value}`);
                                 showSuccess(`${control.name} definido: ${value}${control.unit}`);
+                                // Limpar proteção após envio
+                                clearFieldProtection();
                             }
                         });
                         
@@ -1582,7 +1737,7 @@
                     }
                 });
                 
-                // Enviar configurações
+                // Enviar configurações (MODIFICADO)
                 document.getElementById('send-config')?.addEventListener('click', function() {
                     const equipmentName = document.getElementById('equipment-name')?.value.trim();
                     const pressureTimeout = document.getElementById('pressure-timeout')?.value.trim();
@@ -1618,9 +1773,11 @@
                     
                     publishMessage(MQTT_CONFIG.CONFIG_TOPIC, JSON.stringify(config));
                     showSuccess('Configurações enviadas');
+                    // Limpar proteção após envio
+                    clearFieldProtection();
                 });
                 
-                // Enviar programação
+                // Enviar programação (MODIFICADO)
                 document.getElementById('send-schedule')?.addEventListener('click', function() {
                     const startTime = document.getElementById('start-time')?.value;
                     const stopTime = document.getElementById('stop-time')?.value;
@@ -1654,6 +1811,8 @@
                     setTimeout(() => publishMessage(MQTT_CONFIG.COMMAND_TOPIC, `K:${daysMask}`), 200);
                     
                     showSuccess(`Programação definida: ${startTime} às ${stopTime}`);
+                    // Limpar proteção após envio
+                    clearFieldProtection();
                 });
                 
                 // Atualizar mapa
@@ -1684,6 +1843,7 @@
                 // Inicializar módulos
                 initTabs();
                 setupEventListeners();
+                setupFieldProtection(); // ← ADICIONADO
                 
                 // Preencher campos de configuração MQTT
                 document.getElementById('broker-url').value = MQTT_CONFIG.BROKER_URL;
