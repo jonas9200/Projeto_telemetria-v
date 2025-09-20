@@ -1,0 +1,1617 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AGS Irrigação</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <style>
+        :root {
+            --primary: #2e7d32;
+            --secondary: #00695c;
+            --accent: #2196F3;
+            --dark: #1a2a6c;
+            --light: #f5f5f7;
+            --success: #4CAF50;
+            --warning: #FFC107;
+            --danger: #F44336;
+            --info: #2196F3;
+        }
+        
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+        
+        body {
+           background: linear-gradient(135deg, #fdbb2d, #1e3a8a, #1a2a6c );
+            color: white;
+            min-height: 100vh;
+            padding: 20px;
+        }
+        
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            background: rgba(0, 0, 0, 0.7);
+            border-radius: 15px;
+            padding: 25px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
+        }
+        
+        header {
+            text-align: center;
+            margin-bottom: 30px;
+            padding-bottom: 20px;
+            border-bottom: 2px solid var(--accent);
+        }
+        
+        h1 {
+            font-size: 2.5rem;
+            margin-bottom: 10px;
+            color: var(--accent);
+        }
+        
+        .subtitle {
+            font-size: 1.2rem;
+            opacity: 0.9;
+            margin-bottom: 20px;
+        }
+        
+        .status-bar {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            background: rgba(0, 0, 0, 0.4);
+            padding: 15px;
+            border-radius: 10px;
+            margin-bottom: 30px;
+            flex-wrap: wrap;
+        }
+        
+        .status-item {
+            display: flex;
+            align-items: center;
+            margin: 5px 15px;
+        }
+        
+        .status-indicator {
+            width: 15px;
+            height: 15px;
+            border-radius: 50%;
+            margin-right: 10px;
+        }
+        
+        .connected {
+            background-color: var(--success);
+            box-shadow: 0 0 10px var(--success);
+        }
+        
+        .disconnected {
+            background-color: var(--danger);
+        }
+        
+        .tab-container {
+            margin-bottom: 20px;
+        }
+        
+        .tab-nav {
+            display: flex;
+            background: rgba(0, 0, 0, 0.4);
+            border-radius: 10px 10px 0 0;
+            overflow: hidden;
+            flex-wrap: wrap;
+        }
+        
+        .tab-btn {
+            flex: 1;
+            min-width: 150px;
+            padding: 15px 20px;
+            background: rgba(255, 255, 255, 0.1);
+            border: none;
+            color: white;
+            cursor: pointer;
+            transition: all 0.3s;
+            font-size: 1rem;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        
+        .tab-btn i {
+            margin-right: 8px;
+        }
+        
+        .tab-btn.active {
+            background: var(--primary);
+        }
+        
+        .tab-btn:hover {
+            background: var(--secondary);
+        }
+        
+        .tab-content {
+            display: none;
+            background: rgba(30, 30, 50, 0.8);
+            border-radius: 0 0 10px 10px;
+            padding: 20px;
+        }
+        
+        .tab-content.active {
+            display: block;
+        }
+        
+        .dashboard {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 20px;
+            margin-bottom: 30px;
+        }
+        
+        .card {
+            background: rgba(30, 30, 50, 0.8);
+            border-radius: 10px;
+            padding: 20px;
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.3);
+        }
+        
+        h2 {
+            color: var(--accent);
+            margin-bottom: 15px;
+            font-size: 1.5rem;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.2);
+            padding-bottom: 10px;
+            display: flex;
+            align-items: center;
+        }
+        
+        h2 i {
+            margin-right: 10px;
+        }
+        
+        .control-group {
+            margin-bottom: 15px;
+        }
+        
+        label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: bold;
+        }
+        
+        input, select, textarea, button {
+            width: 100%;
+            padding: 12px;
+            border: none;
+            border-radius: 5px;
+            background: rgba(255, 255, 255, 0.1);
+            color: white;
+            font-size: 1rem;
+        }
+        
+        input::placeholder {
+            color: rgba(255, 255, 255, 0.7);
+        }
+        
+        button {
+            background: var(--primary);
+            color: white;
+            font-weight: bold;
+            cursor: pointer;
+            transition: all 0.3s;
+            margin-top: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        
+        button:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+        }
+        
+        button i {
+            margin-right: 8px;
+        }
+        
+        button:hover:not(:disabled) {
+            background: var(--secondary);
+            transform: translateY(-2px);
+        }
+        
+        .btn-danger { background: var(--danger); }
+        .btn-danger:hover:not(:disabled) { background: #d32f2f; }
+        .btn-success { background: var(--success); }
+        .btn-success:hover:not(:disabled) { background: #388E3C; }
+        .btn-warning { background: var(--warning); color: #333; }
+        .btn-warning:hover:not(:disabled) { background: #FFA000; }
+        .btn-info { background: var(--info); }
+        .btn-info:hover:not(:disabled) { background: #1976D2; }
+        
+        .control-buttons {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 10px;
+            margin-top: 15px;
+        }
+        
+        .status-value {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 10px;
+            padding-bottom: 5px;
+            border-bottom: 1px dashed rgba(255, 255, 255, 0.2);
+        }
+        
+        .status-label { font-weight: bold; }
+        .status-data { color: var(--accent); }
+        
+        .schedule-form {
+            background: rgba(0, 0, 0, 0.3);
+            padding: 20px;
+            border-radius: 10px;
+            margin-bottom: 20px;
+        }
+        
+        .error-alert, .success-alert {
+            padding: 15px;
+            border-radius: 5px;
+            margin: 10px 0;
+            display: none;
+        }
+        
+        .error-alert {
+            background: rgba(244, 67, 54, 0.2);
+            border: 1px solid var(--danger);
+            color: #ffcdd2;
+        }
+        
+        .success-alert {
+            background: rgba(76, 175, 80, 0.2);
+            border: 1px solid var(--success);
+            color: #c8e6c9;
+        }
+        
+        .time-inputs {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 15px;
+            margin-bottom: 20px;
+        }
+        
+        .weekdays {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+            gap: 10px;
+            margin-bottom: 20px;
+        }
+        
+        .weekday {
+            display: flex;
+            align-items: center;
+            padding: 10px;
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 5px;
+        }
+        
+        .weekday input {
+            width: auto;
+            margin-right: 10px;
+            margin-top: 0;
+        }
+        
+        .switch {
+            position: relative;
+            display: inline-block;
+            width: 60px;
+            height: 34px;
+            margin-right: 10px;
+        }
+        
+        .switch input {
+            opacity: 0; 
+            width: 0; 
+            height: 0; 
+        }
+        
+        .slider {
+            position: absolute;
+            cursor: pointer;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background-color: #ccc;
+            transition: .4s;
+            border-radius: 34px;
+        }
+        
+        .slider:before {
+            position: absolute;
+            content: "";
+            height: 26px;
+            width: 26px;
+            left: 4px;
+            bottom: 4px;
+            background-color: white;
+            transition: .4s;
+            border-radius: 50%;
+        }
+        
+        input:checked + .slider {
+            background-color: var(--primary);
+        }
+        
+        input:checked + .slider:before {
+            transform: translateX(26px);
+        }
+        
+        .map-container {
+            height: 400px;
+            width: 100%;
+            border-radius: 10px;
+            overflow: hidden;
+        }
+        
+        #leaflet-map {
+            height: 100%;
+            width: 100%;
+        }
+        
+        @media (max-width: 768px) {
+            .dashboard { grid-template-columns: 1fr; }
+            .status-bar { flex-direction: column; align-items: flex-start; }
+            .status-item { margin-bottom: 10px; }
+            .control-buttons, .time-inputs { grid-template-columns: 1fr; }
+            .weekdays { grid-template-columns: repeat(2, 1fr); }
+            h1 { font-size: 2rem; }
+            .tab-nav { flex-direction: column; }
+            .tab-btn { flex: none; }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1><i class="fas fa-tint"></i> AGS Irrigação</h1>
+            <p class="subtitle" id="dynamic-subtitle">Sistema integrado de controle para irrigação via MQTT</p>
+            <div class="status-bar">
+                <div class="status-item">
+                    <div class="status-indicator connected" id="render-status"></div>
+                    <span id="render-text">Sistema Carregado</span>
+                </div>
+                <div class="status-item">
+                    <div class="status-indicator disconnected" id="mqtt-status"></div>
+                    <span id="mqtt-text">Conectando ao Broker MQTT...</span>
+                </div>
+                <div class="status-item">
+                    <div class="status-indicator disconnected" id="device-status"></div>
+                    <span id="device-text">Dispositivo: Offline</span>
+                </div>
+            </div>
+        </header>
+        
+        <div class="error-alert" id="error-alert">
+            <strong>Erro:</strong> <span id="error-message"></span>
+        </div>
+        
+        <div class="success-alert" id="success-alert">
+            <strong>Sucesso:</strong> <span id="success-message"></span>
+        </div>
+        
+        <div class="tab-container">
+            <div class="tab-nav">
+                <button class="tab-btn active" data-tab="main">
+                    <i class="fas fa-home"></i> Principal
+                </button>
+                <button class="tab-btn" data-tab="config">
+                    <i class="fas fa-cogs"></i> Configurações
+                </button>
+                <button class="tab-btn" data-tab="schedule">
+                    <i class="fas fa-clock"></i> Programação
+                </button>
+                <button class="tab-btn" data-tab="map">
+                    <i class="fas fa-map"></i> Mapa
+                </button>
+                <button class="tab-btn" data-tab="mqtt">
+                    <i class="fas fa-server"></i> MQTT
+                </button>
+            </div>
+            
+            <!-- ABA PRINCIPAL -->
+            <div class="tab-content active" id="main">
+                <div class="dashboard">
+                    <div class="card">
+                        <h2><i class="fas fa-cogs"></i> Controle do Sistema</h2>
+                        
+                        <div class="control-buttons">
+                            <button class="btn-success" id="start-btn" disabled>
+                                <i class="fas fa-play"></i> Iniciar
+                            </button>
+                            <button class="btn-danger" id="stop-btn" disabled>
+                                <i class="fas fa-stop"></i> Parar
+                            </button>
+                            <button class="btn-warning" id="forward-btn" disabled>
+                                <i class="fas fa-rotate-right"></i> Avanço
+                            </button>
+                            <button class="btn-warning" id="reverse-btn" disabled>
+                                <i class="fas fa-rotate-left"></i> Reversão
+                            </button>
+                        </div>
+                        
+                        <div class="control-group">
+                            <button class="btn-info" id="water-btn" disabled>
+                                <i class="fas fa-tint"></i> Água
+                            </button>
+                        </div>
+                        
+                        <div class="control-group">
+                            <label for="percentage">Percentímetro (0-100)%</label>
+                            <input type="number" id="percentage" min="0" max="100" value="" placeholder="Digite a porcentagem">
+                            <button class="btn-info" id="set-percentage" disabled>
+                                <i class="fas fa-percentage"></i> Definir Porcentagem
+                            </button>
+                        </div>
+                        
+                        <div class="control-group">
+                            <label for="water-layer">Lâmina de Água</label>
+                            <input type="number" id="water-layer" step="0.1" value="" placeholder="Digite a lâmina de água">
+                            <button class="btn-info" id="set-water-layer" disabled>
+                                <i class="fas fa-ruler"></i> Definir Lâmina
+                            </button>
+                        </div>
+                    </div>
+                    
+                    <div class="card">
+                        <h2><i class="fas fa-chart-bar"></i> Status do Sistema</h2>
+                        
+                        <div class="status-value">
+                            <span class="status-label">Status:</span>
+                            <span class="status-data" id="status-text">DESCONHECIDO</span>
+                        </div>
+                        
+                        <div class="status-value">
+                            <span class="status-label">Equipamento:</span>
+                            <span class="status-data" id="equipment-name-text">Carregando...</span>
+                        </div>
+                        
+                        <div class="status-value">
+                            <span class="status-label">Direção:</span>
+                            <span class="status-data" id="direction-text">N/A</span>
+                        </div>
+                        
+                        <div class="status-value">
+                            <span class="status-label">Percentímetro:</span>
+                            <span class="status-data" id="percentage-text">0%</span>
+                        </div>
+                        
+                        <div class="status-value">
+                            <span class="status-label">Água:</span>
+                            <span class="status-data" id="water-text">DESCONHECIDO</span>
+                        </div>
+                        
+                        <div class="status-value">
+                            <span class="status-label">Pressão:</span>
+                            <span class="status-data" id="pressure-text">SEM PRESSÃO</span>
+                        </div>
+                        
+                        <div class="status-value">
+                            <span class="status-label">Lâmina:</span>
+                            <span class="status-data" id="water-layer-text">0.0 mm</span>
+                        </div>
+                        
+                        <!-- NOVOS CAMPOS DE STATUS -->
+                        <div class="status-value">
+                            <span class="status-label">Alimentação:</span>
+                            <span class="status-data" id="power-supply-text">DESCONHECIDO</span>
+                        </div>
+                        
+                        <div class="status-value">
+                            <span class="status-label">Em Ciclo:</span>
+                            <span class="status-data" id="in-cycle-text">NÃO</span>
+                        </div>
+                        
+                        <div class="status-value">
+                            <span class="status-label">Relé Ativo:</span>
+                            <span class="status-data" id="relay-state-text">NÃO</span>
+                        </div>
+                        
+                        <div class="status-value">
+                            <span class="status-label">Operação Programada:</span>
+                            <span class="status-data" id="scheduled-operation-text">NÃO</span>
+                        </div>
+                        
+                        <div class="status-value">
+                            <span class="status-label">GPS Sincronizado:</span>
+                            <span class="status-data" id="gps-sync-text">NÃO</span>
+                        </div>
+                        
+                        <div class="status-value">
+                            <span class="status-label">Última Atualização:</span>
+                            <span class="status-data" id="datetime-text">--/--/---- --:--:--</span>
+                        </div>
+                    </div>
+                    
+                    <div class="card">
+                        <h2><i class="fas fa-bullseye"></i> Controle por Grau (SIS)</h2>
+                        
+                        <div class="control-group">
+                            <label>Ativar SIS</label>
+                            <div class="switch">
+                                <input type="checkbox" id="sis-toggle">
+                                <span class="slider"></span>
+                            </div>
+                            <span id="sis-status-text" style="margin-left: 10px;">Desativado</span>
+                        </div>
+                        
+                        <div class="status-value">
+                            <span class="status-label">Status SIS:</span>
+                            <span class="status-data" id="degree-stop-text">DESATIVADA</span>
+                        </div>
+                        
+                        <div class="status-value">
+                            <span class="status-label">Posição Atual:</span>
+                            <span class="status-data" id="position-text">0°</span>
+                        </div>
+                        
+                        <div class="status-value">
+                            <span class="status-label">Grau Programado:</span>
+                            <span class="status-data" id="target-degree-text">0°</span>
+                        </div>
+                        
+                        <div class="status-value">
+                            <span class="status-label">Parado por Grau:</span>
+                            <span class="status-data" id="stopped-by-degree-text">NÃO</span>
+                        </div>
+                        
+                        <div class="status-value">
+                            <span class="status-label">LoRa:</span>
+                            <span class="status-data" id="lora-status-text">DESCONECTADO</span>
+                        </div>
+                        
+                        <div class="control-group">
+                            <label for="target-degree">Grau Alvo</label>
+                            <input type="number" id="target-degree" step="0.1" min="0" max="359.9" value="0.0" placeholder="Digite o grau (0-359.9)">
+                            <button class="btn-info" id="set-target-degree" disabled>
+                                <i class="fas fa-bullseye"></i> Definir Grau
+                            </button>
+                        </div>
+                        
+                        <div class="control-group">
+                            <label for="degree-tolerance">Tolerância (°)</label>
+                            <input type="number" id="degree-tolerance" step="0.1" min="0.1" max="10" value="2.0" placeholder="Digite a tolerância">
+                            <button class="btn-info" id="set-tolerance" disabled>
+                                <i class="fas fa-adjust"></i> Definir Tolerância
+                            </button>
+                        </div>
+                    </div>
+                    
+                    <!-- CARD DE STATUS DA PROGRAMAÇÃO -->
+                    <div class="card">
+                        <h2><i class="fas fa-calendar-alt"></i> Status da Programação</h2>
+                        
+                        <div class="status-value">
+                            <span class="status-label">Programação:</span>
+                            <span class="status-data" id="schedule-enabled-text">DESATIVADA</span>
+                        </div>
+                        
+                        <div class="status-value">
+                            <span class="status-label">Horário:</span>
+                            <span class="status-data" id="schedule-time-text">--:-- às --:--</span>
+                        </div>
+                        
+                        <div class="status-value">
+                            <span class="status-label">Dias:</span>
+                            <span class="status-data" id="schedule-days-text">Nenhum</span>
+                        </div>
+                        
+                        <div class="status-value">
+                            <span class="status-label">Hoje Programado:</span>
+                            <span class="status-data" id="today-scheduled-text">NÃO</span>
+                        </div>
+                        
+                        <div class="status-value">
+                            <span class="status-label">No Horário:</span>
+                            <span class="status-data" id="in-scheduled-time-text">NÃO</span>
+                        </div>
+                        
+                        <div class="status-value">
+                            <span class="status-label">Operação Manual:</span>
+                            <span class="status-data" id="manual-operation-text">NÃO</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- ABA CONFIGURAÇÕES -->
+            <div class="tab-content" id="config">
+                <div class="dashboard">
+                    <div class="card">
+                        <h2><i class="fas fa-wrench"></i> Configurações do Sistema</h2>
+                        
+                        <div class="control-group">
+                            <label for="equipment-name">Nome do Equipamento</label>
+                            <input type="text" id="equipment-name" value="" placeholder="Digite o nome do equipamento">
+                        </div>
+                        
+                        <div class="control-group">
+                            <label for="pressure-timeout">Tempo de Pressão (segundos)</label>
+                            <input type="number" id="pressure-timeout" min="10" max="3600" value="" placeholder="Digite o timeout de pressão">
+                        </div>
+                        
+                        <div class="control-group">
+                            <label for="pivot-radius">Raio do Pivô (metros)</label>
+                            <input type="number" id="pivot-radius" min="10" max="2000" value="" placeholder="Digite o raio do pivô">
+                        </div>
+                        
+                        <div class="control-group">
+                            <label for="flow-rate">Vazão (m³/h)</label>
+                            <input type="number" id="flow-rate" min="1" max="1000" value="" placeholder="Digite a vazão">
+                        </div>
+                        
+                        <div class="control-group">
+                            <label for="base-rotation-time">Tempo de Volta 100% (horas)</label>
+                            <input type="number" id="base-rotation-time" min="1" max="168" value="" placeholder="Digite o tempo de rotação">
+                        </div>
+                        
+                        <button class="btn-success" id="send-config" disabled>
+                            <i class="fas fa-paper-plane"></i> Enviar Configurações
+                        </button>
+                        
+                        <button class="btn-info" id="request-config" disabled>
+                            <i class="fas fa-sync-alt"></i> Solicitar Configurações Atuais
+                        </button>
+                    </div>
+                    
+                    <div class="card">
+                        <h2><i class="fas fa-list"></i> Configurações Recebidas</h2>
+                        <div id="received-config" style="background: rgba(0,0,0,0.3); padding: 15px; border-radius: 5px; min-height: 200px; overflow-y: auto; font-family: monospace; font-size: 0.9rem;">
+                            <p>Aguardando configurações do dispositivo...</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- ABA PROGRAMAÇÃO -->
+            <div class="tab-content" id="schedule">
+                <div class="card">
+                    <h2><i class="fas fa-clock"></i> Programação de Horários</h2>
+                    
+                    <div class="control-group">
+                        <label>Ativar Programação</label>
+                        <div class="switch">
+                            <input type="checkbox" id="schedule-toggle">
+                            <span class="slider"></span>
+                        </div>
+                        <span id="schedule-status-text" style="margin-left: 10px;">Desativado</span>
+                    </div>
+                    
+                    <div class="schedule-form">
+                        <div class="time-inputs">
+                            <div class="control-group">
+                                <label for="start-time">Iniciar às:</label>
+                                <input type="time" id="start-time" value="06:00">
+                            </div>
+                            
+                            <div class="control-group">
+                                <label for="stop-time">Parar às:</label>
+                                <input type="time" id="stop-time" value="18:00">
+                            </div>
+                        </div>
+                        
+                        <div class="control-group">
+                            <label>Dias da Semana:</label>
+                            <div class="weekdays">
+                                <div class="weekday">
+                                    <input type="checkbox" id="dom" value="0">
+                                    <label for="dom">Domingo</label>
+                                </div>
+                                <div class="weekday">
+                                    <input type="checkbox" id="seg" value="1">
+                                    <label for="seg">Segunda</label>
+                                </div>
+                                <div class="weekday">
+                                    <input type="checkbox" id="ter" value="2">
+                                    <label for="ter">Terça</label>
+                                </div>
+                                <div class="weekday">
+                                    <input type="checkbox" id="qua" value="3">
+                                    <label for="qua">Quarta</label>
+                                </div>
+                                <div class="weekday">
+                                    <input type="checkbox" id="qui" value="4">
+                                    <label for="qui">Quinta</label>
+                                </div>
+                                <div class="weekday">
+                                    <input type="checkbox" id="sex" value="5">
+                                    <label for="sex">Sexta</label>
+                                </div>
+                                <div class="weekday">
+                                    <input type="checkbox" id="sab" value="6">
+                                    <label for="sab">Sábado</label>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <button class="btn-success" id="send-schedule" disabled>
+                            <i class="fas fa-calendar-check"></i> Enviar Programação
+                        </button>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- ABA MAPA -->
+            <div class="tab-content" id="map">
+                <div class="card">
+                    <h2><i class="fas fa-map"></i> Localização do Pivô</h2>
+                    
+                    <div class="status-value">
+                        <span class="status-label">GPS Latitude:</span>
+                        <span class="status-data" id="gps-lat-display">0.000000</span>
+                    </div>
+                    
+                    <div class="status-value">
+                        <span class="status-label">GPS Longitude:</span>
+                        <span class="status-data" id="gps-lon-display">0.000000</span>
+                    </div>
+                    
+                    <div class="control-group">
+                        <label for="sensor-lat">Latitude Manual:</label>
+                        <input type="number" id="sensor-lat" step="0.000001" value="-19.360082" placeholder="Digite a latitude">
+                    </div>
+                    
+                    <div class="control-group">
+                        <label for="sensor-lon">Longitude Manual:</label>
+                        <input type="number" id="sensor-lon" step="0.000001" value="-47.364229" placeholder="Digite a longitude">
+                    </div>
+                    
+                    <button class="btn-info" id="update-map">
+                        <i class="fas fa-map-marker-alt"></i> Atualizar Localização no Mapa
+                    </button>
+                    
+                    <div class="map-container">
+                        <div id="leaflet-map"></div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- ABA MQTT -->
+            <div class="tab-content" id="mqtt">
+                <div class="card">
+                    <h2><i class="fas fa-server"></i> Configuração MQTT</h2>
+                    
+                    <div class="control-group">
+                        <label for="broker-url">URL do Broker MQTT</label>
+                        <input type="text" id="broker-url" value="wss://mqtt.aguasanta.agr.br" placeholder="URL do broker" readonly>
+                    </div>
+                    
+                    <div class="control-group">
+                        <label for="command-topic">Tópico de Comando</label>
+                        <input type="text" id="command-topic" value="ags/irrigation/command" readonly>
+                    </div>
+                    
+                    <div class="control-group">
+                        <label for="status-topic">Tópico de Status</label>
+                        <input type="text" id="status-topic" value="ags/irrigation/status" readonly>
+                    </div>
+                    
+                    <div class="control-group">
+                        <label for="online-topic">Tópico de Online</label>
+                        <input type="text" id="online-topic" value="ags/irrigation/online" readonly>
+                    </div>
+                    
+                    <div class="control-group">
+                        <label for="config-topic">Tópico de Configuração</label>
+                        <input type="text" id="config-topic" value="ags/irrigation/config" readonly>
+                    </div>
+                    
+                    <div class="control-group">
+                        <label>Status da Conexão:</label>
+                        <div style="padding: 10px; background: rgba(0,0,0,0.2); border-radius: 5px;">
+                            <strong><span id="connection-status-text">Conectando automaticamente...</span></strong>
+                        </div>
+                    </div>
+                    
+                    <div class="control-buttons">
+                        <button class="btn-danger" id="disconnect-btn" disabled>
+                            <i class="fas fa-power-off"></i> Desconectar
+                        </button>
+                        <button class="btn-info" id="reconnect-btn" style="display: none;">
+                            <i class="fas fa-sync-alt"></i> Reconectar
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://unpkg.com/mqtt@4.3.7/dist/mqtt.min.js"></script>
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            console.log('=== AGS IRRIGAÇÃO - SISTEMA INICIANDO ===');
+            
+            // ===== CONFIGURAÇÕES MQTT FIXAS =====
+            const MQTT_CONFIG = {
+                BROKER_URL: 'wss://mqtt.aguasanta.agr.br',
+                USERNAME: 'coas',
+                PASSWORD: 'AguaSanta@452',
+                COMMAND_TOPIC: 'ags/irrigation/command',
+                STATUS_TOPIC: 'ags/irrigation/status',
+                ONLINE_TOPIC: 'ags/irrigation/online',
+                CONFIG_TOPIC: 'ags/irrigation/config',
+                CLIENT_ID: 'AGS_Irrigation_WebUI_' + Math.random().toString(16).substr(2, 8),
+                CONNECT_TIMEOUT: 5000,
+                KEEPALIVE: 60
+            };
+            
+            // ===== VARIÁVEIS GLOBAIS =====
+            let mqttClient = null;
+            let isConnected = false;
+            let waterState = false;
+            let scheduleEnabled = false;
+            let sisEnabled = false;
+            let reconnectAttempts = 0;
+            const maxReconnectAttempts = 10;
+            let map = null;
+            let marker = null;
+            let currentEquipmentName = 'AGS Irrigação';
+            let deviceOnlineStatus = false;
+            
+            // ===== MAPEAMENTO DE CAMPOS DE CONFIGURAÇÃO =====
+            const configFieldsMapping = {
+                'equipment_name': 'equipment-name',
+                'Nome_do_equipamento': 'equipment-name',
+                'pressure_timeout': 'pressure-timeout',
+                'Tempo_de_pressao': 'pressure-timeout',
+                'pivot_radius': 'pivot-radius',
+                'Raio_do_pivo': 'pivot-radius',
+                'flow_rate': 'flow-rate',
+                'Vazao': 'flow-rate',
+                'base_rotation_time': 'base-rotation-time',
+                'Tempo_de_volta_100': 'base-rotation-time'
+            };
+            
+            // ===== ELEMENTOS DA UI =====
+            const elements = {
+                statusIndicator: document.getElementById('mqtt-status'),
+                statusText: document.getElementById('mqtt-text'),
+                deviceIndicator: document.getElementById('device-status'),
+                deviceText: document.getElementById('device-text'),
+                disconnectBtn: document.getElementById('disconnect-btn'),
+                reconnectBtn: document.getElementById('reconnect-btn'),
+                errorAlert: document.getElementById('error-alert'),
+                successAlert: document.getElementById('success-alert'),
+                errorMessage: document.getElementById('error-message'),
+                successMessage: document.getElementById('success-message'),
+                connectionStatusText: document.getElementById('connection-status-text'),
+                dynamicSubtitle: document.getElementById('dynamic-subtitle'),
+                receivedConfig: document.getElementById('received-config')
+            };
+            
+            // ===== ELEMENTOS DE STATUS =====
+            const statusElements = {
+                status: document.getElementById('status-text'),
+                equipmentName: document.getElementById('equipment-name-text'),
+                direction: document.getElementById('direction-text'),
+                percentage: document.getElementById('percentage-text'),
+                water: document.getElementById('water-text'),
+                pressure: document.getElementById('pressure-text'),
+                waterLayer: document.getElementById('water-layer-text'),
+                powerSupply: document.getElementById('power-supply-text'),
+                inCycle: document.getElementById('in-cycle-text'),
+                relayState: document.getElementById('relay-state-text'),
+                scheduledOperation: document.getElementById('scheduled-operation-text'),
+                gpsSync: document.getElementById('gps-sync-text'),
+                degreeStop: document.getElementById('degree-stop-text'),
+                targetDegree: document.getElementById('target-degree-text'),
+                stoppedByDegree: document.getElementById('stopped-by-degree-text'),
+                position: document.getElementById('position-text'),
+                loraStatus: document.getElementById('lora-status-text'),
+                datetime: document.getElementById('datetime-text'),
+                scheduleEnabledText: document.getElementById('schedule-enabled-text'),
+                scheduleTimeText: document.getElementById('schedule-time-text'),
+                scheduleDaysText: document.getElementById('schedule-days-text'),
+                todayScheduledText: document.getElementById('today-scheduled-text'),
+                inScheduledTimeText: document.getElementById('in-scheduled-time-text'),
+                manualOperationText: document.getElementById('manual-operation-text'),
+                gpsLatDisplay: document.getElementById('gps-lat-display'),
+                gpsLonDisplay: document.getElementById('gps-lon-display')
+            };
+            
+            // ===== LISTA DE BOTÕES DE CONTROLE =====
+            const controlButtons = [
+                'start-btn', 'stop-btn', 'forward-btn', 'reverse-btn', 'water-btn',
+                'set-percentage', 'set-water-layer', 'set-target-degree', 'set-tolerance',
+                'send-config', 'send-schedule', 'request-config'
+            ];
+            
+            // ===== FUNÇÕES DE UTILIDADE =====
+            
+            function showError(message) {
+                elements.errorMessage.textContent = message;
+                elements.errorAlert.style.display = 'block';
+                elements.successAlert.style.display = 'none';
+                setTimeout(() => elements.errorAlert.style.display = 'none', 5000);
+                console.error('ERRO:', message);
+            }
+            
+            function showSuccess(message) {
+                elements.successMessage.textContent = message;
+                elements.successAlert.style.display = 'block';
+                elements.errorAlert.style.display = 'none';
+                setTimeout(() => elements.successAlert.style.display = 'none', 3000);
+                console.log('SUCESSO:', message);
+            }
+            
+            function logMessage(topic, payload) {
+                const now = new Date();
+                const timestamp = `[${now.getHours().toString().padStart(2, '0')}:${now.getMinutes().toString().padStart(2, '0')}:${now.getSeconds().toString().padStart(2, '0')}]`;
+                console.log(`${timestamp} ${topic}: ${payload}`);
+            }
+            
+            function updateSubtitle() {
+                if (currentEquipmentName && currentEquipmentName !== 'AGS Irrigação') {
+                    elements.dynamicSubtitle.textContent = currentEquipmentName;
+                } else {
+                    elements.dynamicSubtitle.textContent = 'Sistema integrado de controle para irrigação via MQTT';
+                }
+            }
+            
+            function validateNumericInput(value, min, max, fieldName) {
+                const num = parseFloat(value);
+                if (isNaN(num)) {
+                    showError(`${fieldName} deve ser um número válido`);
+                    return false;
+                }
+                if (min !== undefined && num < min) {
+                    showError(`${fieldName} deve ser maior ou igual a ${min}`);
+                    return false;
+                }
+                if (max !== undefined && num > max) {
+                    showError(`${fieldName} deve ser menor ou igual a ${max}`);
+                    return false;
+                }
+                return true;
+            }
+            
+            // ===== SISTEMA DE ABAS =====
+            
+            function initTabs() {
+                const tabButtons = document.querySelectorAll('.tab-btn');
+                const tabContents = document.querySelectorAll('.tab-content');
+                
+                tabButtons.forEach(button => {
+                    button.addEventListener('click', function() {
+                        const targetTab = this.getAttribute('data-tab');
+                        
+                        tabButtons.forEach(btn => btn.classList.remove('active'));
+                        tabContents.forEach(content => content.classList.remove('active'));
+                        
+                        this.classList.add('active');
+                        document.getElementById(targetTab).classList.add('active');
+                        
+                        if (targetTab === 'map' && !map) {
+                            setTimeout(initMap, 100);
+                        }
+                    });
+                });
+            }
+            
+            // ===== SISTEMA DE MAPA =====
+            
+            function initMap() {
+                try {
+                    if (typeof L === 'undefined') {
+                        console.warn('Leaflet não carregado');
+                        return;
+                    }
+                    
+                    const lat = parseFloat(document.getElementById('sensor-lat').value) || -19.360082;
+                    const lon = parseFloat(document.getElementById('sensor-lon').value) || -47.364229;
+                    
+                    map = L.map('leaflet-map').setView([lat, lon], 15);
+                    
+                    L.tileLayer(
+                        'https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}',
+                        {
+                            attribution: 'Tiles &copy; Esri',
+                            maxZoom: 20
+                        }
+                    ).addTo(map);
+                    
+                    marker = L.marker([lat, lon])
+                        .addTo(map)
+                        .bindPopup(`${currentEquipmentName} - Pivô de Irrigação`)
+                        .openPopup();
+                        
+                    console.log('Mapa inicializado com sucesso');
+                } catch (error) {
+                    console.error('Erro ao inicializar mapa:', error);
+                    showError('Erro ao carregar o mapa');
+                }
+            }
+            
+            function updateMapLocation() {
+                const lat = parseFloat(document.getElementById('sensor-lat').value);
+                const lon = parseFloat(document.getElementById('sensor-lon').value);
+                
+                if (isNaN(lat) || isNaN(lon)) {
+                    showError('Coordenadas inválidas');
+                    return;
+                }
+                
+                if (map && marker) {
+                    marker.setLatLng([lat, lon]);
+                    map.setView([lat, lon], 15);
+                    marker.bindPopup(`${currentEquipmentName} - Pivô de Irrigação`);
+                    showSuccess('Localização atualizada no mapa');
+                } else {
+                    showError('Mapa não inicializado');
+                }
+            }
+            
+            // ===== FUNÇÕES DE STATUS =====
+            
+            function updateConnectionStatus(connected) {
+                isConnected = connected;
+                elements.statusIndicator.className = 'status-indicator ' + (connected ? 'connected' : 'disconnected');
+                elements.statusText.textContent = connected ? 'MQTT Online' : 'MQTT Offline';
+                elements.connectionStatusText.textContent = connected ? 'Conectado ao Broker' : 'Desconectado';
+                
+                elements.disconnectBtn.disabled = !connected;
+                elements.reconnectBtn.style.display = connected ? 'none' : 'block';
+                
+                controlButtons.forEach(btnId => {
+                    const btn = document.getElementById(btnId);
+                    if (btn) btn.disabled = !connected;
+                });
+                
+                if (connected) {
+                    reconnectAttempts = 0;
+                    showSuccess('Conectado ao broker MQTT');
+                }
+            }
+            
+            function updateDeviceOnlineStatus(online) {
+                deviceOnlineStatus = online;
+                elements.deviceIndicator.className = 'status-indicator ' + (online ? 'connected' : 'disconnected');
+                elements.deviceText.textContent = `Dispositivo: ${online ? 'Online' : 'Offline'}`;
+            }
+            
+            // ===== PROCESSAMENTO DE DADOS =====
+            
+            function processReceivedConfig(configData) {
+                try {
+                    let configDisplay = '<div style="font-family: monospace; font-size: 0.9rem; color: #e0e0e0;">';
+                    let fieldsUpdated = 0;
+                    
+                    configDisplay += '<div style="margin-bottom: 10px; color: #4CAF50; font-weight: bold;">Configurações Recebidas:</div>';
+                    
+                    Object.entries(configData).forEach(([key, value]) => {
+                        configDisplay += `<div style="margin: 5px 0;"><span style="color: #2196F3;">${key}:</span> <span style="color: #fff;">${value}</span></div>`;
+                        
+                        const fieldId = configFieldsMapping[key];
+                        if (fieldId && value !== undefined && value !== null && value !== '') {
+                            const field = document.getElementById(fieldId);
+                            if (field) {
+                                field.value = value;
+                                fieldsUpdated++;
+                                console.log(`Campo ${fieldId} atualizado: ${value}`);
+                            }
+                        }
+                    });
+                    
+                    configDisplay += '</div>';
+                    elements.receivedConfig.innerHTML = configDisplay;
+                    
+                    if (configData.equipment_name || configData.Nome_do_equipamento) {
+                        const newName = configData.equipment_name || configData.Nome_do_equipamento;
+                        if (newName && newName !== currentEquipmentName) {
+                            currentEquipmentName = newName;
+                            updateSubtitle();
+                            statusElements.equipmentName.textContent = currentEquipmentName;
+                            if (marker) {
+                                marker.bindPopup(`${currentEquipmentName} - Pivô de Irrigação`);
+                            }
+                        }
+                    }
+                    
+                    showSuccess(`Configurações processadas. ${fieldsUpdated} campo(s) atualizado(s).`);
+                } catch (error) {
+                    console.error('Erro ao processar configurações:', error);
+                    showError('Erro ao processar configurações recebidas');
+                }
+            }
+            
+            function updateStatusDisplay(data) {
+                const mappings = {
+                    // Campos básicos
+                    'Status': 'status',
+                    'Nome_do_equipamento': 'equipmentName',
+                    'Direcao': 'direction',
+                    'Percentimetro': 'percentage',
+                    'Agua': 'water',
+                    'Pressao': 'pressure',
+                    'Lamina': 'waterLayer',
+                    'Ultima_atualizacao': 'datetime',
+                    // Novos campos de status
+                    'Alimentacao': 'powerSupply',
+                    'Em_ciclo': 'inCycle',
+                    'Rele_ativo': 'relayState',
+                    'Operacao_programada': 'scheduledOperation',
+                    'GPS_sincronizado': 'gpsSync',
+                    // Campos SIS
+                    'Parada_por_grau': 'degreeStop',
+                    'Grau_alvo': 'targetDegree',
+                    'Parado_por_grau': 'stoppedByDegree',
+                    'Posicao_atual': 'position',
+                    'LoRa_conectado': 'loraStatus',
+                    // Campos de programação
+                    'Programacao_ativa': 'scheduleEnabledText',
+                    'Dias_programados': 'scheduleDaysText',
+                    'Hoje_programado': 'todayScheduledText',
+                    'No_horario_programado': 'inScheduledTimeText',
+                    'Operacao_manual': 'manualOperationText',
+                    // Coordenadas GPS
+                    'GPS_Latitude': 'gpsLatDisplay',
+                    'GPS_Longitude': 'gpsLonDisplay'
+                };
+                
+                Object.entries(data).forEach(([key, value]) => {
+                    const elementKey = mappings[key];
+                    if (elementKey && statusElements[elementKey]) {
+                        let displayValue = value;
+                        
+                        // Formatação específica
+                        if (key === 'Percentimetro') displayValue += '%';
+                        else if (key === 'Grau_alvo' || key === 'Posicao_atual') displayValue += '°';
+                        else if (key === 'Lamina') displayValue += ' mm';
+                        else if (key === 'GPS_Latitude' || key === 'GPS_Longitude') displayValue = parseFloat(value).toFixed(6);
+                        
+                        statusElements[elementKey].textContent = displayValue;
+                        
+                        // Tratamento especial para horários de programação
+                        if (key === 'Hora_inicio' && data['Hora_fim']) {
+                            statusElements.scheduleTimeText.textContent = `${data['Hora_inicio']} às ${data['Hora_fim']}`;
+                            return;
+                        }
+                        
+                        // Atualizar nome do equipamento
+                        if (key === 'Nome_do_equipamento') {
+                            const newName = value.toString().trim();
+                            if (newName && newName !== currentEquipmentName) {
+                                currentEquipmentName = newName;
+                                updateSubtitle();
+                                const equipmentInput = document.getElementById('equipment-name');
+                                if (equipmentInput) equipmentInput.value = currentEquipmentName;
+                                if (marker) marker.bindPopup(`${currentEquipmentName} - Pivô de Irrigação`);
+                            }
+                        }
+                        
+                        // Atualizar botão de água
+                        if (key === 'Agua') {
+                            const waterBtn = document.getElementById('water-btn');
+                            const isWaterOn = value.toUpperCase() === 'LIGADA';
+                            waterBtn.innerHTML = isWaterOn ? 
+                                '<i class="fas fa-tint"></i> Desligar Água' : 
+                                '<i class="fas fa-tint"></i> Ligar Água';
+                            waterState = isWaterOn;
+                        }
+                        
+                        // Atualizar switches
+                        if (key === 'Parada_por_grau') {
+                            const sisToggle = document.getElementById('sis-toggle');
+                            const sisText = document.getElementById('sis-status-text');
+                            const isActive = value.toUpperCase() === 'ATIVADA';
+                            sisToggle.checked = isActive;
+                            sisText.textContent = isActive ? 'Ativado' : 'Desativado';
+                            sisEnabled = isActive;
+                        }
+                        
+                        if (key === 'Programacao_ativa') {
+                            const scheduleToggle = document.getElementById('schedule-toggle');
+                            const scheduleText = document.getElementById('schedule-status-text');
+                            const isActive = value.toUpperCase() === 'SIM';
+                            scheduleToggle.checked = isActive;
+                            scheduleText.textContent = isActive ? 'Ativado' : 'Desativado';
+                            scheduleEnabled = isActive;
+                        }
+                    }
+                });
+                
+                // Atualizar timestamp se não recebido
+                if (!data.Ultima_atualizacao) {
+                    const now = new Date();
+                    const timestamp = `${now.getDate().toString().padStart(2, '0')}/${(now.getMonth() + 1).toString().padStart(2, '0')}/${now.getFullYear()} ${now.getHours().toString().padStart(2, '0')}:${now.getMinutes().toString().padStart(2, '0')}:${now.getSeconds().toString().padStart(2, '0')}`;
+                    statusElements.datetime.textContent = timestamp + ' (Sistema)';
+                }
+            }
+            
+            // ===== CONEXÃO MQTT =====
+            
+            function connectToBroker() {
+                logMessage('Sistema', `Conectando ao broker: ${MQTT_CONFIG.BROKER_URL}`);
+                elements.connectionStatusText.textContent = 'Conectando...';
+                
+                try {
+                    const options = {
+                        connectTimeout: MQTT_CONFIG.CONNECT_TIMEOUT,
+                        keepalive: MQTT_CONFIG.KEEPALIVE,
+                        clean: true,
+                        reconnectPeriod: 3000,
+                        clientId: MQTT_CONFIG.CLIENT_ID,
+                        username: MQTT_CONFIG.USERNAME,
+                        password: MQTT_CONFIG.PASSWORD
+                    };
+                    
+                    mqttClient = mqtt.connect(MQTT_CONFIG.BROKER_URL, options);
+                    
+                    mqttClient.on('connect', function() {
+                        updateConnectionStatus(true);
+                        logMessage('Sistema', 'Conectado ao broker MQTT com sucesso');
+                        
+                        const topics = [
+                            MQTT_CONFIG.STATUS_TOPIC,
+                            MQTT_CONFIG.ONLINE_TOPIC,
+                            MQTT_CONFIG.CONFIG_TOPIC
+                        ];
+                        
+                        topics.forEach(topic => {
+                            mqttClient.subscribe(topic, { qos: 1 }, function(err) {
+                                if (!err) {
+                                    logMessage('Sistema', `Subscrito em: ${topic}`);
+                                } else {
+                                    showError(`Erro ao subscrever em ${topic}: ${err.message}`);
+                                }
+                            });
+                        });
+                        
+                        // Solicitar configurações após conectar
+                        setTimeout(requestCurrentConfig, 2000);
+                    });
+                    
+                    mqttClient.on('message', function(topic, message) {
+                        const payload = message.toString();
+                        logMessage(`RX ${topic}`, payload);
+                        
+                        try {
+                            const data = JSON.parse(payload);
+                            
+                            if (topic === MQTT_CONFIG.STATUS_TOPIC) {
+                                updateStatusDisplay(data);
+                            } else if (topic === MQTT_CONFIG.ONLINE_TOPIC) {
+                                if (data.hasOwnProperty('online')) {
+                                    updateDeviceOnlineStatus(data.online);
+                                }
+                            } else if (topic === MQTT_CONFIG.CONFIG_TOPIC) {
+                                processReceivedConfig(data);
+                            }
+                        } catch (e) {
+                            console.warn('Payload não é JSON válido:', payload);
+                        }
+                    });
+                    
+                    mqttClient.on('error', function(err) {
+                        showError(`Erro MQTT: ${err.message}`);
+                        updateConnectionStatus(false);
+                        elements.connectionStatusText.textContent = 'Erro de conexão';
+                    });
+                    
+                    mqttClient.on('close', function() {
+                        logMessage('Sistema', 'Conexão MQTT fechada');
+                        updateConnectionStatus(false);
+                        attemptReconnect();
+                    });
+                    
+                    mqttClient.on('offline', function() {
+                        logMessage('Sistema', 'Cliente MQTT offline');
+                        updateConnectionStatus(false);
+                        elements.connectionStatusText.textContent = 'Offline';
+                    });
+                    
+                    mqttClient.on('reconnect', function() {
+                        logMessage('Sistema', 'Tentando reconectar...');
+                        elements.connectionStatusText.textContent = 'Reconectando...';
+                    });
+                    
+                } catch (error) {
+                    showError(`Falha ao conectar: ${error.message}`);
+                    updateConnectionStatus(false);
+                }
+            }
+            
+            function attemptReconnect() {
+                if (reconnectAttempts < maxReconnectAttempts && !isConnected) {
+                    reconnectAttempts++;
+                    logMessage('Sistema', `Tentativa de reconexão ${reconnectAttempts}/${maxReconnectAttempts}`);
+                    setTimeout(() => {
+                        if (!isConnected) connectToBroker();
+                    }, 3000 + (reconnectAttempts * 2000));
+                } else if (!isConnected) {
+                    logMessage('Sistema', 'Máximo de tentativas de reconexão atingido');
+                    elements.connectionStatusText.textContent = 'Falha na reconexão';
+                }
+            }
+            
+            function disconnectFromBroker() {
+                if (mqttClient) {
+                    mqttClient.end(true);
+                    mqttClient = null;
+                    updateConnectionStatus(false);
+                    showSuccess('Desconectado do broker MQTT');
+                }
+            }
+            
+            function reconnectToBroker() {
+                reconnectAttempts = 0;
+                connectToBroker();
+            }
+            
+            function publishMessage(topic, message) {
+                if (mqttClient && isConnected) {
+                    mqttClient.publish(topic, message, { qos: 1 }, function(err) {
+                        if (err) {
+                            showError(`Erro ao publicar: ${err.message}`);
+                        } else {
+                            logMessage(`TX ${topic}`, message);
+                        }
+                    });
+                } else {
+                    showError('MQTT não conectado');
+                }
+            }
+            
+            function requestCurrentConfig() {
+                const request = JSON.stringify({
+                    action: "get_config",
+                    timestamp: Date.now(),
+                    source: "WebInterface"
+                });
+                publishMessage(MQTT_CONFIG.CONFIG_TOPIC, request);
+                showSuccess('Configurações solicitadas');
+            }
+            
+            // ===== EVENT LISTENERS =====
+            
+            function setupEventListeners() {
+                console.log('Configurando event listeners...');
+                
+                // Verificação de elementos essenciais
+                const criticalElements = ['sis-toggle', 'schedule-toggle', 'start-btn', 'stop-btn'];
+                const missingElements = criticalElements.filter(id => !document.getElementById(id));
+                if (missingElements.length > 0) {
+                    console.error('Elementos críticos não encontrados:', missingElements);
+                }
+                
+                // Switch SIS
+                const sisToggle = document.getElementById('sis-toggle');
+                const sisText = document.getElementById('sis-status-text');
+                
+                if (sisToggle && sisText) {
+                    sisToggle.addEventListener('change', function() {
+                        sisEnabled = this.checked;
+                        publishMessage(MQTT_CONFIG.COMMAND_TOPIC, `Q:${sisEnabled ? 1 : 0}`);
+                        sisText.textContent = sisEnabled ? 'Ativado' : 'Desativado';
+                        showSuccess(`SIS ${sisEnabled ? 'ativado' : 'desativado'}`);
+                    });
+                }
+                
+                // Switch Programação
+                const scheduleToggle = document.getElementById('schedule-toggle');
+                const scheduleText = document.getElementById('schedule-status-text');
+                
+                if (scheduleToggle && scheduleText) {
+                    scheduleToggle.addEventListener('change', function() {
+                        scheduleEnabled = this.checked;
+                        publishMessage(MQTT_CONFIG.COMMAND_TOPIC, `E:${scheduleEnabled ? 1 : 0}`);
+                        scheduleText.textContent = scheduleEnabled ? 'Ativado' : 'Desativado';
+                        showSuccess(`Programação ${scheduleEnabled ? 'ativada' : 'desativada'}`);
+                    });
+                }
+                
+                // Botões de conexão
+                elements.disconnectBtn?.addEventListener('click', disconnectFromBroker);
+                elements.reconnectBtn?.addEventListener('click', reconnectToBroker);
+                
+                // Solicitar configurações
+                document.getElementById('request-config')?.addEventListener('click', requestCurrentConfig);
+                
+                // Comandos básicos do sistema
+                const basicCommands = {
+                    'start-btn': { cmd: 'L', msg: 'Sistema Iniciado' },
+                    'stop-btn': { cmd: 'D', msg: 'Sistema Parado' },
+                    'forward-btn': { cmd: 'A', msg: 'Direção: Avanço' },
+                    'reverse-btn': { cmd: 'R', msg: 'Direção: Reversão' },
+                    'water-btn': { 
+                        cmd: () => waterState ? 'B' : 'W', 
+                        msg: () => waterState ? 'Água Desligada' : 'Água Ligada' 
+                    }
+                };
+                
+                Object.entries(basicCommands).forEach(([btnId, config]) => {
+                    const btn = document.getElementById(btnId);
+                    if (btn) {
+                        btn.addEventListener('click', function() {
+                            const cmd = typeof config.cmd === 'function' ? config.cmd() : config.cmd;
+                            const msg = typeof config.msg === 'function' ? config.msg() : config.msg;
+                            publishMessage(MQTT_CONFIG.COMMAND_TOPIC, cmd);
+                            showSuccess(msg);
+                        });
+                    }
+                });
+                
+                // Controles com valores
+                const valueControls = [
+                    { btn: 'set-percentage', input: 'percentage', prefix: 'P:', validation: [0.01, 100], unit: '%', name: 'Percentímetro' },
+                    { btn: 'set-water-layer', input: 'water-layer', prefix: 'S:', validation: [0.1], unit: ' mm', name: 'Lâmina de Água' },
+                    { btn: 'set-target-degree', input: 'target-degree', prefix: 'G:', validation: [0, 359.9], unit: '°', name: 'Grau Alvo' },
+                    { btn: 'set-tolerance', input: 'degree-tolerance', prefix: 'Y:', validation: [0.1, 10], unit: '°', name: 'Tolerância' }
+                ];
+                
+                valueControls.forEach(control => {
+                    const btn = document.getElementById(control.btn);
+                    const input = document.getElementById(control.input);
+                    
+                    if (btn && input) {
+                        btn.addEventListener('click', function() {
+                            const value = input.value.trim();
+                            if (!value) {
+                                showError(`${control.name}: Digite um valor válido`);
+                                return;
+                            }
+                            
+                            if (validateNumericInput(value, control.validation[0], control.validation[1], control.name)) {
+                                publishMessage(MQTT_CONFIG.COMMAND_TOPIC, `${control.prefix}${value}`);
+                                showSuccess(`${control.name} definido: ${value}${control.unit}`);
+                            }
+                        });
+                        
+                        // Enter key listener
+                        input.addEventListener('keypress', function(e) {
+                            if (e.key === 'Enter') {
+                                btn.click();
+                            }
+                        });
+                    }
+                });
+                
+                // Enviar configurações
+                document.getElementById('send-config')?.addEventListener('click', function() {
+                    const equipmentName = document.getElementById('equipment-name')?.value.trim();
+                    const pressureTimeout = document.getElementById('pressure-timeout')?.value.trim();
+                    const pivotRadius = document.getElementById('pivot-radius')?.value.trim();
+                    const flowRate = document.getElementById('flow-rate')?.value.trim();
+                    const baseRotationTime = document.getElementById('base-rotation-time')?.value.trim();
+                    
+                    const config = {
+                        timestamp: Date.now(),
+                        source: "WebInterface"
+                    };
+                    
+                    if (equipmentName) config.equipment_name = equipmentName;
+                    if (pressureTimeout) config.pressure_timeout = parseInt(pressureTimeout);
+                    if (pivotRadius) config.pivot_radius = parseFloat(pivotRadius);
+                    if (flowRate) config.flow_rate = parseFloat(flowRate);
+                    if (baseRotationTime) config.base_rotation_time = parseFloat(baseRotationTime);
+                    
+                    if (Object.keys(config).length <= 2) {
+                        showError('Preencha pelo menos um campo de configuração');
+                        return;
+                    }
+                    
+                    // Atualizar nome local se foi alterado
+                    if (equipmentName && equipmentName !== currentEquipmentName) {
+                        currentEquipmentName = equipmentName;
+                        updateSubtitle();
+                        statusElements.equipmentName.textContent = currentEquipmentName;
+                        if (marker) {
+                            marker.bindPopup(`${currentEquipmentName} - Pivô de Irrigação`);
+                        }
+                    }
+                    
+                    publishMessage(MQTT_CONFIG.CONFIG_TOPIC, JSON.stringify(config));
+                    showSuccess('Configurações enviadas');
+                });
+                
+                // Enviar programação
+                document.getElementById('send-schedule')?.addEventListener('click', function() {
+                    const startTime = document.getElementById('start-time')?.value;
+                    const stopTime = document.getElementById('stop-time')?.value;
+                    
+                    if (!startTime || !stopTime) {
+                        showError('Defina os horários de início e parada');
+                        return;
+                    }
+                    
+                    const startFormatted = startTime.replace(':', '');
+                    const stopFormatted = stopTime.replace(':', '');
+                    
+                    const weekdays = ['dom', 'seg', 'ter', 'qua', 'qui', 'sex', 'sab'];
+                    let daysMask = 0;
+                    
+                    weekdays.forEach((day, index) => {
+                        const checkbox = document.getElementById(day);
+                        if (checkbox?.checked) {
+                            daysMask |= (1 << index);
+                        }
+                    });
+                    
+                    if (daysMask === 0) {
+                        showError('Selecione pelo menos um dia da semana');
+                        return;
+                    }
+                    
+                    // Enviar comandos de programação
+                    publishMessage(MQTT_CONFIG.COMMAND_TOPIC, `I:${startFormatted}`);
+                    setTimeout(() => publishMessage(MQTT_CONFIG.COMMAND_TOPIC, `J:${stopFormatted}`), 100);
+                    setTimeout(() => publishMessage(MQTT_CONFIG.COMMAND_TOPIC, `K:${daysMask}`), 200);
+                    
+                    showSuccess(`Programação definida: ${startTime} às ${stopTime}`);
+                });
+                
+                // Atualizar mapa
+                document.getElementById('update-map')?.addEventListener('click', updateMapLocation);
+                
+                console.log('Event listeners configurados com sucesso');
+            }
+            
+            // ===== INICIALIZAÇÃO =====
+            
+            function initializeSystem() {
+                console.log('=== INICIALIZANDO SISTEMA AGS IRRIGAÇÃO ===');
+                
+                // Verificar dependências
+                if (typeof mqtt === 'undefined') {
+                    showError('Biblioteca MQTT não carregada. Verifique sua conexão.');
+                    return;
+                }
+                
+                if (typeof L === 'undefined') {
+                    console.warn('Biblioteca Leaflet não carregada. Mapa não estará disponível.');
+                }
+                
+                // Configurar estados iniciais
+                updateConnectionStatus(false);
+                updateDeviceOnlineStatus(false);
+                
+                // Inicializar módulos
+                initTabs();
+                setupEventListeners();
+                
+                // Preencher campos de configuração MQTT
+                document.getElementById('broker-url').value = MQTT_CONFIG.BROKER_URL;
+                document.getElementById('command-topic').value = MQTT_CONFIG.COMMAND_TOPIC;
+                document.getElementById('status-topic').value = MQTT_CONFIG.STATUS_TOPIC;
+                document.getElementById('online-topic').value = MQTT_CONFIG.ONLINE_TOPIC;
+                document.getElementById('config-topic').value = MQTT_CONFIG.CONFIG_TOPIC;
+                
+                updateSubtitle();
+                
+                // Conectar automaticamente após inicialização
+                setTimeout(() => {
+                    logMessage('Sistema', 'Iniciando conexão automática com broker MQTT...');
+                    connectToBroker();
+                }, 1500);
+                
+                // Timer para atualização periódica de timestamp
+                setInterval(() => {
+                    if (isConnected && statusElements.datetime?.textContent === '--/--/---- --:--:--') {
+                        const now = new Date();
+                        const timestamp = `${now.getDate().toString().padStart(2, '0')}/${(now.getMonth() + 1).toString().padStart(2, '0')}/${now.getFullYear()} ${now.getHours().toString().padStart(2, '0')}:${now.getMinutes().toString().padStart(2, '0')}:${now.getSeconds().toString().padStart(2, '0')}`;
+                        statusElements.datetime.textContent = timestamp + ' (Sistema)';
+                    }
+                }, 10000);
+                
+                console.log('=== SISTEMA AGS IRRIGAÇÃO INICIALIZADO ===');
+            }
+            
+            // Inicializar quando o DOM estiver completamente carregado
+            initializeSystem();
+        });
+    </script>
+</body>
+</html>
