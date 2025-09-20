@@ -861,7 +861,7 @@
             let currentEquipmentName = 'AGS Irrigação';
             let deviceOnlineStatus = false;
             
-            // ===== MAPEAMENTO DE CAMPOS DE CONFIGURAÇÃO =====
+            // ===== MAPEAMENTO DE CAMPOS DE CONFIGURAÇÃO EXPANDIDO =====
             const configFieldsMapping = {
                 'equipment_name': 'equipment-name',
                 'Nome_do_equipamento': 'equipment-name',
@@ -872,7 +872,13 @@
                 'flow_rate': 'flow-rate',
                 'Vazao': 'flow-rate',
                 'base_rotation_time': 'base-rotation-time',
-                'Tempo_de_volta_100': 'base-rotation-time'
+                'Tempo_de_volta_100': 'base-rotation-time',
+                'target_irrigation_depth': 'water-layer',
+                'Lamina': 'water-layer',
+                'Grau_alvo': 'target-degree',
+                'target_stop_degree': 'target-degree',
+                'Tolerancia_graus': 'degree-tolerance',
+                'degree_stop_tolerance': 'degree-tolerance'
             };
             
             // ===== ELEMENTOS DA UI =====
@@ -1096,11 +1102,18 @@
                         
                         const fieldId = configFieldsMapping[key];
                         if (fieldId && value !== undefined && value !== null && value !== '') {
-                            const field = document.getElementById(fieldId);
-                            if (field) {
-                                field.value = value;
-                                fieldsUpdated++;
-                                console.log(`Campo ${fieldId} atualizado: ${value}`);
+                            // ===== PROTEÇÃO: Não atualizar campos em edição =====
+                            if (!userEditingFields.has(fieldId)) {
+                                const field = document.getElementById(fieldId);
+                                if (field) {
+                                    field.value = value;
+                                    fieldsUpdated++;
+                                    console.log(`Campo ${fieldId} atualizado: ${value}`);
+                                } else {
+                                    console.warn(`Campo ${fieldId} não encontrado no DOM`);
+                                }
+                            } else {
+                                console.log(`Campo ${fieldId} protegido (em edição), não atualizado`);
                             }
                         }
                     });
@@ -1108,7 +1121,9 @@
                     configDisplay += '</div>';
                     elements.receivedConfig.innerHTML = configDisplay;
                     
-                    if (configData.equipment_name || configData.Nome_do_equipamento) {
+                    // Atualizar nome do equipamento se não estiver sendo editado
+                    if ((configData.equipment_name || configData.Nome_do_equipamento) && 
+                        !userEditingFields.has('equipment-name')) {
                         const newName = configData.equipment_name || configData.Nome_do_equipamento;
                         if (newName && newName !== currentEquipmentName) {
                             currentEquipmentName = newName;
@@ -1413,6 +1428,42 @@
                                 if (!isNaN(numValue)) {
                                     waterLayerInput.value = numValue;
                                 }
+                            }
+                        }
+                        
+                        // ===== CAMPOS DE CONFIGURAÇÃO DO SISTEMA =====
+                        if (key === 'Nome_do_equipamento' && !userEditingFields.has('equipment-name')) {
+                            const equipmentInput = document.getElementById('equipment-name');
+                            if (equipmentInput && value !== undefined) {
+                                equipmentInput.value = value;
+                            }
+                        }
+                        
+                        if (key === 'Tempo_de_pressao' && !userEditingFields.has('pressure-timeout')) {
+                            const pressureInput = document.getElementById('pressure-timeout');
+                            if (pressureInput && value !== undefined) {
+                                pressureInput.value = parseInt(value);
+                            }
+                        }
+                        
+                        if (key === 'Raio_do_pivo' && !userEditingFields.has('pivot-radius')) {
+                            const radiusInput = document.getElementById('pivot-radius');
+                            if (radiusInput && value !== undefined) {
+                                radiusInput.value = parseFloat(value);
+                            }
+                        }
+                        
+                        if (key === 'Vazao' && !userEditingFields.has('flow-rate')) {
+                            const flowInput = document.getElementById('flow-rate');
+                            if (flowInput && value !== undefined) {
+                                flowInput.value = parseFloat(value);
+                            }
+                        }
+                        
+                        if (key === 'Tempo_de_volta_100' && !userEditingFields.has('base-rotation-time')) {
+                            const timeInput = document.getElementById('base-rotation-time');
+                            if (timeInput && value !== undefined) {
+                                timeInput.value = parseFloat(value);
                             }
                         }
                     }
