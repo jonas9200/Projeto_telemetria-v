@@ -238,6 +238,33 @@
             margin-top: 15px;
         }
         
+        .messages {
+            height: 200px;
+            overflow-y: auto;
+            background: rgba(0, 0, 0, 0.3);
+            padding: 10px;
+            border-radius: 5px;
+            margin-top: 10px;
+            font-family: monospace;
+        }
+        
+        .message {
+            margin-bottom: 8px;
+            padding: 8px;
+            border-radius: 5px;
+            background: rgba(255, 255, 255, 0.1);
+            animation: fadeIn 0.3s ease-in;
+        }
+        
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        
+        .timestamp { color: var(--accent); font-size: 0.8rem; }
+        .topic { color: var(--success); font-weight: bold; }
+        .payload { color: white; }
+        
         .status-value {
             display: flex;
             justify-content: space-between;
@@ -273,6 +300,27 @@
             background: rgba(76, 175, 80, 0.2);
             border: 1px solid var(--success);
             color: #c8e6c9;
+        }
+        
+        .auth-toggle {
+            display: flex;
+            align-items: center;
+            margin-bottom: 15px;
+        }
+        
+        .auth-toggle input {
+            width: auto;
+            margin-right: 10px;
+        }
+        
+        .auth-fields {
+            display: none;
+            grid-template-columns: 1fr 1fr;
+            gap: 10px;
+        }
+        
+        .auth-fields.active {
+            display: grid;
         }
         
         .time-inputs {
@@ -370,6 +418,7 @@
             h1 { font-size: 2rem; }
             .tab-nav { flex-direction: column; }
             .tab-btn { flex: none; }
+            .auth-fields { grid-template-columns: 1fr; }
         }
     </style>
 </head>
@@ -377,7 +426,7 @@
     <div class="container">
         <header>
             <h1><i class="fas fa-tint"></i> AGS Irrigação</h1>
-            <p class="subtitle" id="dynamic-subtitle">Sistema integrado de controle para irrigação via MQTT</p>
+            <p class="subtitle" id="dynamic-subtitle"></p>
             <div class="status-bar">
                 <div class="status-item">
                     <div class="status-indicator connected" id="render-status"></div>
@@ -475,7 +524,7 @@
                         
                         <div class="status-value">
                             <span class="status-label">Equipamento:</span>
-                            <span class="status-data" id="equipment-name-text">Carregando...</span>
+                            <span class="status-data" id="equipment-name-text">pivo</span>
                         </div>
                         
                         <div class="status-value">
@@ -499,11 +548,11 @@
                         </div>
                         
                         <div class="status-value">
-                            <span class="status-label">Lâmina:</span>
-                            <span class="status-data" id="water-layer-text">0.0 mm</span>
+                            <span class="status-label">Lâmina de Água:</span>
+                            <span class="status-data" id="water-layer-text">0.0</span>
                         </div>
                         
-                        <!-- NOVOS CAMPOS DE STATUS -->
+                        <!-- ===== NOVOS CAMPOS ADICIONADOS ===== -->
                         <div class="status-value">
                             <span class="status-label">Alimentação:</span>
                             <span class="status-data" id="power-supply-text">DESCONHECIDO</span>
@@ -530,6 +579,31 @@
                         </div>
                         
                         <div class="status-value">
+                            <span class="status-label">SIS:</span>
+                            <span class="status-data" id="degree-stop-text">DESATIVADA</span>
+                        </div>
+                        
+                        <div class="status-value">
+                            <span class="status-label">Grau Programado:</span>
+                            <span class="status-data" id="target-degree-text">0°</span>
+                        </div>
+                        
+                        <div class="status-value">
+                            <span class="status-label">Parado por grau:</span>
+                            <span class="status-data" id="stopped-by-degree-text">NÃO</span>
+                        </div>
+                        
+                        <div class="status-value">
+                            <span class="status-label">Posição Atual:</span>
+                            <span class="status-data" id="position-text">0°</span>
+                        </div>
+                        
+                        <div class="status-value">
+                            <span class="status-label">LoRa:</span>
+                            <span class="status-data" id="lora-status-text">DESCONECTADO</span>
+                        </div>
+                        
+                        <div class="status-value">
                             <span class="status-label">Última Atualização:</span>
                             <span class="status-data" id="datetime-text">--/--/---- --:--:--</span>
                         </div>
@@ -547,34 +621,9 @@
                             <span id="sis-status-text" style="margin-left: 10px;">Desativado</span>
                         </div>
                         
-                        <div class="status-value">
-                            <span class="status-label">Status SIS:</span>
-                            <span class="status-data" id="degree-stop-text">DESATIVADA</span>
-                        </div>
-                        
-                        <div class="status-value">
-                            <span class="status-label">Posição Atual:</span>
-                            <span class="status-data" id="position-text">0°</span>
-                        </div>
-                        
-                        <div class="status-value">
-                            <span class="status-label">Grau Programado:</span>
-                            <span class="status-data" id="target-degree-text">0°</span>
-                        </div>
-                        
-                        <div class="status-value">
-                            <span class="status-label">Parado por Grau:</span>
-                            <span class="status-data" id="stopped-by-degree-text">NÃO</span>
-                        </div>
-                        
-                        <div class="status-value">
-                            <span class="status-label">LoRa:</span>
-                            <span class="status-data" id="lora-status-text">DESCONECTADO</span>
-                        </div>
-                        
                         <div class="control-group">
-                            <label for="target-degree">Grau Alvo</label>
-                            <input type="number" id="target-degree" step="0.1" min="0" max="359.9" value="0.0" placeholder="Digite o grau (0-359.9)">
+                            <label for="target-degree">Grau</label>
+                            <input type="number" id="target-degree" step="0.1" value="0.0" placeholder="Digite o grau">
                             <button class="btn-info" id="set-target-degree" disabled>
                                 <i class="fas fa-bullseye"></i> Definir Grau
                             </button>
@@ -582,14 +631,14 @@
                         
                         <div class="control-group">
                             <label for="degree-tolerance">Tolerância (°)</label>
-                            <input type="number" id="degree-tolerance" step="0.1" min="0.1" max="10" value="2.0" placeholder="Digite a tolerância">
+                            <input type="number" id="degree-tolerance" step="0.1" value="2.0" placeholder="Digite a tolerância">
                             <button class="btn-info" id="set-tolerance" disabled>
                                 <i class="fas fa-adjust"></i> Definir Tolerância
                             </button>
                         </div>
                     </div>
                     
-                    <!-- CARD DE STATUS DA PROGRAMAÇÃO -->
+                    <!-- ===== NOVO CARD DE PROGRAMAÇÃO ===== -->
                     <div class="card">
                         <h2><i class="fas fa-calendar-alt"></i> Status da Programação</h2>
                         
@@ -634,51 +683,42 @@
                         
                         <div class="control-group">
                             <label for="equipment-name">Nome do Equipamento</label>
-                            <input type="text" id="equipment-name" value="" placeholder="Digite o nome do equipamento">
+                            <input type="text" id="equipment-name" value="Pivo" placeholder="Digite o nome do equipamento">
                         </div>
                         
                         <div class="control-group">
-                            <label for="pressure-timeout">Tempo de Pressão (segundos)</label>
-                            <input type="number" id="pressure-timeout" min="10" max="3600" value="" placeholder="Digite o timeout de pressão">
+                            <label for="pressure-timeout">Tempo Pressão (segundos)</label>
+                            <input type="number" id="pressure-timeout" value="" placeholder="Digite o tempo de pressão">
                         </div>
                         
                         <div class="control-group">
                             <label for="pivot-radius">Raio do Pivô (metros)</label>
-                            <input type="number" id="pivot-radius" min="10" max="2000" value="" placeholder="Digite o raio do pivô">
+                            <input type="number" id="pivot-radius" value="" placeholder="Digite o raio do pivô">
                         </div>
                         
                         <div class="control-group">
                             <label for="flow-rate">Vazão (m³/h)</label>
-                            <input type="number" id="flow-rate" min="1" max="1000" value="" placeholder="Digite a vazão">
+                            <input type="number" id="flow-rate" value="" placeholder="Digite a vazão">
                         </div>
                         
                         <div class="control-group">
-                            <label for="base-rotation-time">Tempo de Volta 100% (horas)</label>
-                            <input type="number" id="base-rotation-time" min="1" max="168" value="" placeholder="Digite o tempo de rotação">
+                            <label for="base-rotation-time">Tempo de volta 100% (horas)</label>
+                            <input type="number" id="base-rotation-time" value="" placeholder="Digite o tempo de rotação">
                         </div>
                         
                         <button class="btn-success" id="send-config" disabled>
                             <i class="fas fa-paper-plane"></i> Enviar Configurações
                         </button>
+                        
+                        <button class="btn-info" id="request-config" disabled>
+                            <i class="fas fa-sync-alt"></i> Solicitar Configurações Atuais
+                        </button>
                     </div>
                     
                     <div class="card">
-                        <h2><i class="fas fa-chart-line"></i> Status das Configurações</h2>
-                        <div class="status-value">
-                            <span class="status-label">Auto-preenchimento:</span>
-                            <span class="status-data">Ativo via Status MQTT</span>
-                        </div>
-                        <div class="status-value">
-                            <span class="status-label">Proteção de edição:</span>
-                            <span class="status-data">Ativa durante digitação</span>
-                        </div>
-                        <div class="status-value">
-                            <span class="status-label">Fonte dos dados:</span>
-                            <span class="status-data">Dispositivo via MQTT</span>
-                        </div>
-                        <div id="config-status" style="background: rgba(0,0,0,0.3); padding: 15px; border-radius: 5px; min-height: 100px; font-family: monospace; font-size: 0.9rem;">
-                            <div style="color: #4CAF50;">✓ Campos preenchidos automaticamente pelo status do dispositivo</div>
-                            <div style="color: #2196F3; margin-top: 10px;">📡 Aguardando dados via MQTT...</div>
+                        <h2><i class="fas fa-list"></i> Configurações Recebidas</h2>
+                        <div id="received-config" style="background: rgba(0,0,0,0.3); padding: 15px; border-radius: 5px; min-height: 200px; overflow-y: auto;">
+                            <p>Nenhuma configuração recebida ainda.</p>
                         </div>
                     </div>
                 </div>
@@ -713,9 +753,7 @@
                         
                         <div class="control-group">
                             <label>Dias da Semana:</label>
-                            <div class="weekdays">
-                                <div class="weekday">
-                                    <input type="checkbox" id="dom" value="0">
+                             <input type="checkbox" id="dom" value="0">
                                     <label for="dom">Domingo</label>
                                 </div>
                                 <div class="weekday">
@@ -723,7 +761,9 @@
                                     <label for="seg">Segunda</label>
                                 </div>
                                 <div class="weekday">
-                                    <input type="checkbox" id="ter" value="2">
+                            <div class="weekdays">
+                                <div class="weekday">
+                                   " id="ter" value="2">
                                     <label for="ter">Terça</label>
                                 </div>
                                 <div class="weekday">
@@ -746,7 +786,7 @@
                         </div>
                         
                         <button class="btn-success" id="send-schedule" disabled>
-                            <i class="fas fa-calendar-check"></i> Enviar Programação
+                            <i class="fas fa-calendar-check"></i> Definir Programação
                         </button>
                     </div>
                 </div>
@@ -757,28 +797,18 @@
                 <div class="card">
                     <h2><i class="fas fa-map"></i> Localização do Pivô</h2>
                     
-                    <div class="status-value">
-                        <span class="status-label">GPS Latitude:</span>
-                        <span class="status-data" id="gps-lat-display">0.000000</span>
-                    </div>
-                    
-                    <div class="status-value">
-                        <span class="status-label">GPS Longitude:</span>
-                        <span class="status-data" id="gps-lon-display">0.000000</span>
-                    </div>
-                    
                     <div class="control-group">
-                        <label for="sensor-lat">Latitude Manual:</label>
+                        <label for="sensor-lat">Latitude:</label>
                         <input type="number" id="sensor-lat" step="0.000001" value="-19.360082" placeholder="Digite a latitude">
                     </div>
                     
                     <div class="control-group">
-                        <label for="sensor-lon">Longitude Manual:</label>
+                        <label for="sensor-lon">Longitude:</label>
                         <input type="number" id="sensor-lon" step="0.000001" value="-47.364229" placeholder="Digite a longitude">
                     </div>
                     
                     <button class="btn-info" id="update-map">
-                        <i class="fas fa-map-marker-alt"></i> Atualizar Localização no Mapa
+                        <i class="fas fa-map-marker-alt"></i> Atualizar Localização
                     </button>
                     
                     <div class="map-container">
@@ -794,27 +824,27 @@
                     
                     <div class="control-group">
                         <label for="broker-url">URL do Broker MQTT</label>
-                        <input type="text" id="broker-url" value="wss://mqtt.aguasanta.agr.br" placeholder="URL do broker" readonly>
+                        <input type="text" id="broker-url" value="wss://mqtt.aguasanta.agr.br" placeholder="ws://seu-broker.com:porta" readonly>
                     </div>
                     
                     <div class="control-group">
                         <label for="command-topic">Tópico de Comando</label>
-                        <input type="text" id="command-topic" value="ags/irrigation/command" readonly>
+                        <input type="text" id="command-topic" value="ags/irrigation/command" placeholder="ags/irrigation/command" readonly>
                     </div>
                     
                     <div class="control-group">
                         <label for="status-topic">Tópico de Status</label>
-                        <input type="text" id="status-topic" value="ags/irrigation/status" readonly>
+                        <input type="text" id="status-topic" value="ags/irrigation/status" placeholder="ags/irrigation/status" readonly>
                     </div>
                     
                     <div class="control-group">
                         <label for="online-topic">Tópico de Online</label>
-                        <input type="text" id="online-topic" value="ags/irrigation/online" readonly>
+                        <input type="text" id="online-topic" value="ags/irrigation/online" placeholder="ags/irrigation/online" readonly>
                     </div>
                     
                     <div class="control-group">
                         <label for="config-topic">Tópico de Configuração</label>
-                        <input type="text" id="config-topic" value="ags/irrigation/config" readonly>
+                        <input type="text" id="config-topic" value="ags/irrigation/config" placeholder="ags/irrigation/config" readonly>
                     </div>
                     
                     <div class="control-group">
@@ -841,23 +871,33 @@
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
     <script>
         document.addEventListener('DOMContentLoaded', function() {
-            console.log('=== AGS IRRIGAÇÃO - SISTEMA INICIANDO ===');
+            console.log('Sistema AGS Irrigação carregado');
             
-            // ===== CONFIGURAÇÕES MQTT FIXAS =====
+             // ================================================
+            // CONFIGURAÇÕES MQTT EMBUTIDAS NO CÓDIGO
+            // ================================================
             const MQTT_CONFIG = {
+                // URL do broker MQTT
                 BROKER_URL: 'wss://mqtt.aguasanta.agr.br',
+                
+                // Credenciais de autenticação
                 USERNAME: 'coas',
                 PASSWORD: 'AguaSanta@452',
+                
+                // Tópicos padrão
                 COMMAND_TOPIC: 'ags/irrigation/command',
                 STATUS_TOPIC: 'ags/irrigation/status',
                 ONLINE_TOPIC: 'ags/irrigation/online',
                 CONFIG_TOPIC: 'ags/irrigation/config',
-                CLIENT_ID: 'AGS_Irrigation_WebUI_' + Math.random().toString(16).substr(2, 8),
+                
+                // Configurações de conexão
+                CLIENT_ID: 'AGS_Irrigation_' + Math.random().toString(16).substr(2, 8),
                 CONNECT_TIMEOUT: 5000,
                 KEEPALIVE: 60
             };
+            // ================================================
             
-            // ===== VARIÁVEIS GLOBAIS =====
+            // Variáveis globais
             let mqttClient = null;
             let isConnected = false;
             let waterState = false;
@@ -867,30 +907,24 @@
             const maxReconnectAttempts = 10;
             let map = null;
             let marker = null;
-            let currentEquipmentName = 'AGS Irrigação';
+            let currentEquipmentName = 'pivo';
             let deviceOnlineStatus = false;
             
-            // ===== MAPEAMENTO DE CAMPOS DE CONFIGURAÇÃO EXPANDIDO =====
+            // Mapeamento de campos de configuração - CORRIGIDO
             const configFieldsMapping = {
                 'equipment_name': 'equipment-name',
-                'Nome_do_equipamento': 'equipment-name',
                 'pressure_timeout': 'pressure-timeout',
-                'Tempo_de_pressao': 'pressure-timeout',
                 'pivot_radius': 'pivot-radius',
-                'Raio_do_pivo': 'pivot-radius',
                 'flow_rate': 'flow-rate',
-                'Vazao': 'flow-rate',
                 'base_rotation_time': 'base-rotation-time',
-                'Tempo_de_volta_100': 'base-rotation-time',
-                'target_irrigation_depth': 'water-layer',
-                'Lamina': 'water-layer',
-                'Grau_alvo': 'target-degree',
-                'target_stop_degree': 'target-degree',
-                'Tolerancia_graus': 'degree-tolerance',
-                'degree_stop_tolerance': 'degree-tolerance'
+                'Nome_do_equipamento': 'equipment-name',
+                'Tempo_de_pressao': 'pressure-timeout',
+                'Raio_do_pivo': 'pivot-radius',
+                'Vazao': 'flow-rate',
+                'Tempo_de_volta_100': 'base-rotation-time'
             };
             
-            // ===== ELEMENTOS DA UI =====
+            // Elementos da UI centralizados
             const elements = {
                 statusIndicator: document.getElementById('mqtt-status'),
                 statusText: document.getElementById('mqtt-text'),
@@ -904,10 +938,10 @@
                 successMessage: document.getElementById('success-message'),
                 connectionStatusText: document.getElementById('connection-status-text'),
                 dynamicSubtitle: document.getElementById('dynamic-subtitle'),
-                configStatus: document.getElementById('config-status')
+                receivedConfig: document.getElementById('received-config')
             };
             
-            // ===== ELEMENTOS DE STATUS =====
+            // Elementos de status centralizados - EXPANDIDO
             const statusElements = {
                 status: document.getElementById('status-text'),
                 equipmentName: document.getElementById('equipment-name-text'),
@@ -916,6 +950,7 @@
                 water: document.getElementById('water-text'),
                 pressure: document.getElementById('pressure-text'),
                 waterLayer: document.getElementById('water-layer-text'),
+                // === NOVOS CAMPOS ADICIONADOS ===
                 powerSupply: document.getElementById('power-supply-text'),
                 inCycle: document.getElementById('in-cycle-text'),
                 relayState: document.getElementById('relay-state-text'),
@@ -927,74 +962,32 @@
                 position: document.getElementById('position-text'),
                 loraStatus: document.getElementById('lora-status-text'),
                 datetime: document.getElementById('datetime-text'),
+                // === ELEMENTOS DE PROGRAMAÇÃO ===
                 scheduleEnabledText: document.getElementById('schedule-enabled-text'),
                 scheduleTimeText: document.getElementById('schedule-time-text'),
                 scheduleDaysText: document.getElementById('schedule-days-text'),
                 todayScheduledText: document.getElementById('today-scheduled-text'),
                 inScheduledTimeText: document.getElementById('in-scheduled-time-text'),
-                manualOperationText: document.getElementById('manual-operation-text'),
-                gpsLatDisplay: document.getElementById('gps-lat-display'),
-                gpsLonDisplay: document.getElementById('gps-lon-display')
+                manualOperationText: document.getElementById('manual-operation-text')
             };
             
-            // ===== LISTA DE BOTÕES DE CONTROLE =====
+            // Lista de botões de controle - EXPANDIDA
             const controlButtons = [
                 'start-btn', 'stop-btn', 'forward-btn', 'reverse-btn', 'water-btn',
                 'set-percentage', 'set-water-layer', 'set-target-degree', 'set-tolerance',
-                'send-config', 'send-schedule'
+                'send-config', 'send-schedule', 'request-config'
             ];
             
-            // ===== FUNÇÕES DE UTILIDADE =====
-            
-            function showError(message) {
-                elements.errorMessage.textContent = message;
-                elements.errorAlert.style.display = 'block';
-                elements.successAlert.style.display = 'none';
-                setTimeout(() => elements.errorAlert.style.display = 'none', 5000);
-                console.error('ERRO:', message);
-            }
-            
-            function showSuccess(message) {
-                elements.successMessage.textContent = message;
-                elements.successAlert.style.display = 'block';
-                elements.errorAlert.style.display = 'none';
-                setTimeout(() => elements.successAlert.style.display = 'none', 3000);
-                console.log('SUCESSO:', message);
-            }
-            
-            function logMessage(topic, payload) {
-                const now = new Date();
-                const timestamp = `[${now.getHours().toString().padStart(2, '0')}:${now.getMinutes().toString().padStart(2, '0')}:${now.getSeconds().toString().padStart(2, '0')}]`;
-                console.log(`${timestamp} ${topic}: ${payload}`);
-            }
-            
+            // Função para atualizar o subtitle dinamicamente
             function updateSubtitle() {
-                if (currentEquipmentName && currentEquipmentName !== 'AGS Irrigação') {
-                    elements.dynamicSubtitle.textContent = currentEquipmentName;
+                if (currentEquipmentName && currentEquipmentName.toLowerCase() !== 'pivo') {
+                    elements.dynamicSubtitle.textContent = `${currentEquipmentName}`;
                 } else {
                     elements.dynamicSubtitle.textContent = 'Sistema integrado de controle para irrigação via MQTT';
                 }
             }
             
-            function validateNumericInput(value, min, max, fieldName) {
-                const num = parseFloat(value);
-                if (isNaN(num)) {
-                    showError(`${fieldName} deve ser um número válido`);
-                    return false;
-                }
-                if (min !== undefined && num < min) {
-                    showError(`${fieldName} deve ser maior ou igual a ${min}`);
-                    return false;
-                }
-                if (max !== undefined && num > max) {
-                    showError(`${fieldName} deve ser menor ou igual a ${max}`);
-                    return false;
-                }
-                return true;
-            }
-            
-            // ===== SISTEMA DE ABAS =====
-            
+            // Sistema de abas
             function initTabs() {
                 const tabButtons = document.querySelectorAll('.tab-btn');
                 const tabContents = document.querySelectorAll('.tab-content');
@@ -1016,8 +1009,7 @@
                 });
             }
             
-            // ===== SISTEMA DE MAPA =====
-            
+            // Inicializar mapa
             function initMap() {
                 try {
                     if (typeof L === 'undefined') {
@@ -1034,22 +1026,21 @@
                         'https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}',
                         {
                             attribution: 'Tiles &copy; Esri',
-                            maxZoom: 20
+                            maxZoom: 50
                         }
                     ).addTo(map);
                     
                     marker = L.marker([lat, lon])
                         .addTo(map)
-                        .bindPopup(`${currentEquipmentName} - Pivô de Irrigação`)
+                        .bindPopup(currentEquipmentName ? `${currentEquipmentName} - Pivô de Irrigação` : 'Pivô de Irrigação')
                         .openPopup();
                         
-                    console.log('Mapa inicializado com sucesso');
                 } catch (error) {
                     console.error('Erro ao inicializar mapa:', error);
-                    showError('Erro ao carregar o mapa');
                 }
             }
             
+            // Atualizar localização no mapa
             function updateMapLocation() {
                 const lat = parseFloat(document.getElementById('sensor-lat').value);
                 const lon = parseFloat(document.getElementById('sensor-lon').value);
@@ -1062,23 +1053,50 @@
                 if (map && marker) {
                     marker.setLatLng([lat, lon]);
                     map.setView([lat, lon], 15);
-                    marker.bindPopup(`${currentEquipmentName} - Pivô de Irrigação`);
+                    marker.bindPopup(currentEquipmentName ? `${currentEquipmentName} - Pivô de Irrigação` : 'Pivô de Irrigação');
                     showSuccess('Localização atualizada no mapa');
                 } else {
                     showError('Mapa não inicializado');
                 }
             }
             
-            // ===== FUNÇÕES DE STATUS =====
+            // Funções de alerta otimizadas
+            function showError(message) {
+                elements.errorMessage.textContent = message;
+                elements.errorAlert.style.display = 'block';
+                elements.successAlert.style.display = 'none';
+                setTimeout(() => elements.errorAlert.style.display = 'none', 5000);
+                console.error('Erro:', message);
+            }
             
+            function showSuccess(message) {
+                elements.successMessage.textContent = message;
+                elements.successAlert.style.display = 'block';
+                elements.errorAlert.style.display = 'none';
+                setTimeout(() => elements.successAlert.style.display = 'none', 3000);
+                console.log('Sucesso:', message);
+            }
+            
+            function addMessage(topic, payload) {
+                const now = new Date();
+                const timestamp = `[${now.getHours().toString().padStart(2, '0')}:${now.getMinutes().toString().padStart(2, '0')}:${now.getSeconds().toString().padStart(2, '0')}]`;
+                console.log(`${timestamp} ${topic}: ${payload}`);
+            }
+            
+            // Funções de status otimizadas
             function updateConnectionStatus(connected) {
                 isConnected = connected;
                 elements.statusIndicator.className = 'status-indicator ' + (connected ? 'connected' : 'disconnected');
-                elements.statusText.textContent = connected ? 'MQTT Online' : 'MQTT Offline';
-                elements.connectionStatusText.textContent = connected ? 'Conectado ao Broker' : 'Desconectado';
+                elements.statusText.textContent = connected ? 'Online' : 'Offline';
+                elements.connectionStatusText.textContent = connected ? 'Conectado' : 'Desconectado';
                 
                 elements.disconnectBtn.disabled = !connected;
-                elements.reconnectBtn.style.display = connected ? 'none' : 'block';
+                
+                if (connected) {
+                    elements.reconnectBtn.style.display = 'none';
+                } else {
+                    elements.reconnectBtn.style.display = 'block';
+                }
                 
                 controlButtons.forEach(btnId => {
                     const btn = document.getElementById(btnId);
@@ -1087,42 +1105,33 @@
                 
                 if (connected) {
                     reconnectAttempts = 0;
-                    showSuccess('Conectado ao broker MQTT');
+                    showSuccess('Conectado ao broker MQTT com sucesso');
                 }
             }
             
+            // Atualizar status do dispositivo
             function updateDeviceOnlineStatus(online) {
                 deviceOnlineStatus = online;
                 elements.deviceIndicator.className = 'status-indicator ' + (online ? 'connected' : 'disconnected');
                 elements.deviceText.textContent = `Dispositivo: ${online ? 'Online' : 'Offline'}`;
             }
             
-            // ===== PROCESSAMENTO DE DADOS =====
-            
+            // Processar configurações recebidas - MELHORADO
             function processReceivedConfig(configData) {
                 try {
-                    let configDisplay = '<div style="font-family: monospace; font-size: 0.9rem; color: #e0e0e0;">';
+                    let configDisplay = '<div style="font-family: monospace; font-size: 0.9rem;">';
                     let fieldsUpdated = 0;
                     
-                    configDisplay += '<div style="margin-bottom: 10px; color: #4CAF50; font-weight: bold;">Configurações Recebidas:</div>';
-                    
                     Object.entries(configData).forEach(([key, value]) => {
-                        configDisplay += `<div style="margin: 5px 0;"><span style="color: #2196F3;">${key}:</span> <span style="color: #fff;">${value}</span></div>`;
+                        configDisplay += `<div><strong>${key}:</strong> ${value}</div>`;
                         
                         const fieldId = configFieldsMapping[key];
-                        if (fieldId && value !== undefined && value !== null && value !== '') {
-                            // ===== PROTEÇÃO: Não atualizar campos em edição =====
-                            if (!userEditingFields.has(fieldId)) {
-                                const field = document.getElementById(fieldId);
-                                if (field) {
-                                    field.value = value;
-                                    fieldsUpdated++;
-                                    console.log(`Campo ${fieldId} atualizado: ${value}`);
-                                } else {
-                                    console.warn(`Campo ${fieldId} não encontrado no DOM`);
-                                }
-                            } else {
-                                console.log(`Campo ${fieldId} protegido (em edição), não atualizado`);
+                        if (fieldId && value !== undefined && value !== null) {
+                            const field = document.getElementById(fieldId);
+                            if (field) {
+                                field.value = value;
+                                fieldsUpdated++;
+                                console.log(`Campo ${fieldId} atualizado com valor: ${value}`);
                             }
                         }
                     });
@@ -1130,373 +1139,33 @@
                     configDisplay += '</div>';
                     elements.receivedConfig.innerHTML = configDisplay;
                     
-                    // Atualizar nome do equipamento se não estiver sendo editado
-                    if ((configData.equipment_name || configData.Nome_do_equipamento) && 
-                        !userEditingFields.has('equipment-name')) {
-                        const newName = configData.equipment_name || configData.Nome_do_equipamento;
-                        if (newName && newName !== currentEquipmentName) {
-                            currentEquipmentName = newName;
-                            updateSubtitle();
-                            statusElements.equipmentName.textContent = currentEquipmentName;
-                            if (marker) {
-                                marker.bindPopup(`${currentEquipmentName} - Pivô de Irrigação`);
-                            }
+                    if (configData.equipment_name && configData.equipment_name !== currentEquipmentName) {
+                        currentEquipmentName = configData.equipment_name;
+                        updateSubtitle();
+                        statusElements.equipmentName.textContent = currentEquipmentName;
+                        if (marker) {
+                            marker.bindPopup(`${currentEquipmentName} - Pivô de Irrigação`);
                         }
                     }
                     
-                    showSuccess(`Configurações processadas. ${fieldsUpdated} campo(s) atualizado(s).`);
+                    showSuccess(`Configurações recebidas. ${fieldsUpdated} campo(s) atualizado(s).`);
                 } catch (error) {
                     console.error('Erro ao processar configurações:', error);
                     showError('Erro ao processar configurações recebidas');
                 }
             }
             
-            // ===== SISTEMA DE CONTROLE DE EDIÇÃO =====
-            let userEditingFields = new Set(); // Campos que o usuário está editando
-            let pauseUpdates = false; // Flag global para pausar atualizações
-            
-            // Lista de campos que devem ser protegidos contra atualização automática
-            const protectedFields = [
-                'target-degree', 'degree-tolerance', 'percentage', 'water-layer',
-                'start-time', 'stop-time', 'equipment-name', 'pressure-timeout',
-                'pivot-radius', 'flow-rate', 'base-rotation-time'
-            ];
-            
-            // Lista de checkboxes da programação
-            const scheduleCheckboxes = ['dom', 'seg', 'ter', 'qua', 'qui', 'sex', 'sab'];
-            
-            function setupFieldProtection() {
-                console.log('Configurando proteção de campos em edição...');
-                
-                protectedFields.forEach(fieldId => {
-                    const field = document.getElementById(fieldId);
-                    if (field) {
-                        // Quando o usuário começa a editar
-                        field.addEventListener('focus', function() {
-                            userEditingFields.add(fieldId);
-                            pauseUpdates = true;
-                            console.log(`Campo ${fieldId} em edição. Updates pausados.`);
-                        });
-                        
-                        // Quando o usuário sai do campo
-                        field.addEventListener('blur', function() {
-                            userEditingFields.delete(fieldId);
-                            if (userEditingFields.size === 0) {
-                                pauseUpdates = false;
-                                console.log(`Campo ${fieldId} saiu de edição. Updates retomados.`);
-                            }
-                        });
-                        
-                        // Detectar digitação
-                        field.addEventListener('input', function() {
-                            userEditingFields.add(fieldId);
-                            pauseUpdates = true;
-                        });
-                    }
-                });
-                
-                // Proteção para checkboxes da programação
-                scheduleCheckboxes.forEach(checkboxId => {
-                    const checkbox = document.getElementById(checkboxId);
-                    if (checkbox) {
-                        checkbox.addEventListener('change', function() {
-                            userEditingFields.add('schedule-checkboxes');
-                            pauseUpdates = true;
-                            console.log('Checkboxes da programação modificados. Updates pausados.');
-                            
-                            // Remover proteção após 2 segundos se não houver mais interação
-                            setTimeout(() => {
-                                userEditingFields.delete('schedule-checkboxes');
-                                if (userEditingFields.size === 0) {
-                                    pauseUpdates = false;
-                                    console.log('Proteção dos checkboxes removida. Updates retomados.');
-                                }
-                            }, 2000);
-                        });
-                    }
-                });
-            }
-            
-            // Função para limpar proteção após envio de dados
-            function clearFieldProtection() {
-                userEditingFields.clear();
-                pauseUpdates = false;
-                console.log('Proteção de campos limpa após envio de dados.');
-            }
-            
-            // ===== FUNÇÃO PARA ATUALIZAR CHECKBOXES (MODIFICADA) =====
-            function updateScheduleCheckboxes(daysMask, startTime, endTime) {
-                // Não atualizar se usuário está editando
-                if (userEditingFields.has('schedule-checkboxes')) {
-                    console.log('Checkboxes não atualizados - usuário editando');
-                    return;
-                }
-                
-                console.log('Atualizando checkboxes da programação:', { daysMask, startTime, endTime });
-                
-                // Atualizar checkboxes dos dias da semana
-                if (daysMask !== undefined && daysMask !== null) {
-                    const weekdays = ['dom', 'seg', 'ter', 'qua', 'qui', 'sex', 'sab'];
-                    const mask = parseInt(daysMask);
-                    
-                    weekdays.forEach((day, index) => {
-                        const checkbox = document.getElementById(day);
-                        if (checkbox) {
-                            const isChecked = (mask & (1 << index)) !== 0;
-                            checkbox.checked = isChecked;
-                            console.log(`${day} (bit ${index}): ${isChecked}`);
-                        }
-                    });
-                }
-                
-                // Atualizar horários se recebidos e não estão sendo editados
-                if (startTime && !userEditingFields.has('start-time')) {
-                    const startInput = document.getElementById('start-time');
-                    if (startInput) {
-                        startInput.value = startTime;
-                        console.log(`Horário início atualizado: ${startTime}`);
-                    }
-                }
-                
-                if (endTime && !userEditingFields.has('stop-time')) {
-                    const endInput = document.getElementById('stop-time');
-                    if (endInput) {
-                        endInput.value = endTime;
-                        console.log(`Horário fim atualizado: ${endTime}`);
-                    }
-                }
-            }
-            
-            function updateStatusDisplay(data) {
-                const mappings = {
-                    // Campos básicos
-                    'Status': 'status',
-                    'Nome_do_equipamento': 'equipmentName',
-                    'Direcao': 'direction',
-                    'Percentimetro': 'percentage',
-                    'Agua': 'water',
-                    'Pressao': 'pressure',
-                    'Lamina': 'waterLayer',
-                    'Ultima_atualizacao': 'datetime',
-                    // Novos campos de status
-                    'Alimentacao': 'powerSupply',
-                    'Em_ciclo': 'inCycle',
-                    'Rele_ativo': 'relayState',
-                    'Operacao_programada': 'scheduledOperation',
-                    'GPS_sincronizado': 'gpsSync',
-                    // Campos SIS
-                    'Parada_por_grau': 'degreeStop',
-                    'Grau_alvo': 'targetDegree',
-                    'Parado_por_grau': 'stoppedByDegree',
-                    'Posicao_atual': 'position',
-                    'LoRa_conectado': 'loraStatus',
-                    // Campos de programação
-                    'Programacao_ativa': 'scheduleEnabledText',
-                    'Dias_programados': 'scheduleDaysText',
-                    'Hoje_programado': 'todayScheduledText',
-                    'No_horario_programado': 'inScheduledTimeText',
-                    'Operacao_manual': 'manualOperationText',
-                    // Coordenadas GPS
-                    'GPS_Latitude': 'gpsLatDisplay',
-                    'GPS_Longitude': 'gpsLonDisplay'
-                };
-                
-                // Variáveis para armazenar dados da programação
-                let scheduleData = {
-                    daysMask: null,
-                    startTime: null,
-                    endTime: null
-                };
-                
-                // CORREÇÃO: Processar horários de programação PRIMEIRO
-                if (data['Hora_inicio'] && data['Hora_fim']) {
-                    const scheduleTimeElement = statusElements.scheduleTimeText;
-                    if (scheduleTimeElement) {
-                        scheduleTimeElement.textContent = `${data['Hora_inicio']} às ${data['Hora_fim']}`;
-                        console.log(`Horários atualizados: ${data['Hora_inicio']} às ${data['Hora_fim']}`);
-                    }
-                    
-                    // Armazenar para atualizar os inputs
-                    scheduleData.startTime = data['Hora_inicio'];
-                    scheduleData.endTime = data['Hora_fim'];
-                } else {
-                    // Debug: Verificar quais campos de horário estão chegando
-                    const timeFields = Object.keys(data).filter(key => 
-                        key.toLowerCase().includes('hora') || 
-                        key.toLowerCase().includes('inicio') || 
-                        key.toLowerCase().includes('fim') ||
-                        key.toLowerCase().includes('start') ||
-                        key.toLowerCase().includes('end')
-                    );
-                    if (timeFields.length > 0) {
-                        console.log('Campos de horário encontrados:', timeFields);
-                        timeFields.forEach(field => {
-                            console.log(`${field}: ${data[field]}`);
-                        });
-                    }
-                }
-                
-                // Capturar máscara de dias para atualizar checkboxes
-                if (data['Mascara_dias'] !== undefined) {
-                    scheduleData.daysMask = data['Mascara_dias'];
-                    console.log('Máscara de dias recebida:', scheduleData.daysMask);
-                }
-                
-                Object.entries(data).forEach(([key, value]) => {
-                    const elementKey = mappings[key];
-                    if (elementKey && statusElements[elementKey]) {
-                        let displayValue = value;
-                        
-                        // Formatação específica
-                        if (key === 'Percentimetro') displayValue += '%';
-                        else if (key === 'Grau_alvo' || key === 'Posicao_atual') displayValue += '°';
-                        else if (key === 'Lamina') displayValue += ' mm';
-                        else if (key === 'GPS_Latitude' || key === 'GPS_Longitude') displayValue = parseFloat(value).toFixed(6);
-                        
-                        statusElements[elementKey].textContent = displayValue;
-                        
-                        // Pular processamento de horários individuais (já processados acima)
-                        if (key === 'Hora_inicio' || key === 'Hora_fim') {
-                            return;
-                        }
-                        
-                        // Atualizar nome do equipamento
-                        if (key === 'Nome_do_equipamento') {
-                            const newName = value.toString().trim();
-                            if (newName && newName !== currentEquipmentName) {
-                                currentEquipmentName = newName;
-                                updateSubtitle();
-                                const equipmentInput = document.getElementById('equipment-name');
-                                if (equipmentInput) equipmentInput.value = currentEquipmentName;
-                                if (marker) marker.bindPopup(`${currentEquipmentName} - Pivô de Irrigação`);
-                            }
-                        }
-                        
-                        // Atualizar botão de água
-                        if (key === 'Agua') {
-                            const waterBtn = document.getElementById('water-btn');
-                            const isWaterOn = value.toUpperCase() === 'LIGADA';
-                            waterBtn.innerHTML = isWaterOn ? 
-                                '<i class="fas fa-tint"></i> Desligar Água' : 
-                                '<i class="fas fa-tint"></i> Ligar Água';
-                            waterState = isWaterOn;
-                        }
-                        
-                        // Atualizar switches
-                        if (key === 'Parada_por_grau') {
-                            const sisToggle = document.getElementById('sis-toggle');
-                            const sisText = document.getElementById('sis-status-text');
-                            const isActive = value.toUpperCase() === 'ATIVADA';
-                            if (sisToggle && sisText) {
-                                sisToggle.checked = isActive;
-                                sisText.textContent = isActive ? 'Ativado' : 'Desativado';
-                                sisEnabled = isActive;
-                            }
-                        }
-                        
-                        if (key === 'Programacao_ativa') {
-                            const scheduleToggle = document.getElementById('schedule-toggle');
-                            const scheduleText = document.getElementById('schedule-status-text');
-                            const isActive = value.toUpperCase() === 'SIM';
-                            if (scheduleToggle && scheduleText) {
-                                scheduleToggle.checked = isActive;
-                                scheduleText.textContent = isActive ? 'Ativado' : 'Desativado';
-                                scheduleEnabled = isActive;
-                            }
-                        }
-                        
-                        // ===== ATUALIZAR CAMPOS DOS INPUTS DE CONFIGURAÇÃO (PROTEGIDOS) =====
-                        if (key === 'Grau_alvo' && !userEditingFields.has('target-degree')) {
-                            const targetDegreeInput = document.getElementById('target-degree');
-                            if (targetDegreeInput && value !== undefined) {
-                                targetDegreeInput.value = parseFloat(value);
-                            }
-                        }
-                        
-                        if (key === 'Tolerancia_graus' && !userEditingFields.has('degree-tolerance')) {
-                            const toleranceInput = document.getElementById('degree-tolerance');
-                            if (toleranceInput && value !== undefined) {
-                                toleranceInput.value = parseFloat(value);
-                            }
-                        }
-                        
-                        if (key === 'Percentimetro' && !userEditingFields.has('percentage')) {
-                            const percentageInput = document.getElementById('percentage');
-                            if (percentageInput && value !== undefined) {
-                                const numValue = parseFloat(value);
-                                if (!isNaN(numValue)) {
-                                    percentageInput.value = numValue;
-                                }
-                            }
-                        }
-                        
-                        if (key === 'Lamina' && !userEditingFields.has('water-layer')) {
-                            const waterLayerInput = document.getElementById('water-layer');
-                            if (waterLayerInput && value !== undefined) {
-                                const numValue = parseFloat(value);
-                                if (!isNaN(numValue)) {
-                                    waterLayerInput.value = numValue;
-                                }
-                            }
-                        }
-                        
-                        // ===== CAMPOS DE CONFIGURAÇÃO DO SISTEMA =====
-                        if (key === 'Nome_do_equipamento' && !userEditingFields.has('equipment-name')) {
-                            const equipmentInput = document.getElementById('equipment-name');
-                            if (equipmentInput && value !== undefined) {
-                                equipmentInput.value = value;
-                            }
-                        }
-                        
-                        if (key === 'Tempo_de_pressao' && !userEditingFields.has('pressure-timeout')) {
-                            const pressureInput = document.getElementById('pressure-timeout');
-                            if (pressureInput && value !== undefined) {
-                                pressureInput.value = parseInt(value);
-                            }
-                        }
-                        
-                        if (key === 'Raio_do_pivo' && !userEditingFields.has('pivot-radius')) {
-                            const radiusInput = document.getElementById('pivot-radius');
-                            if (radiusInput && value !== undefined) {
-                                radiusInput.value = parseFloat(value);
-                            }
-                        }
-                        
-                        if (key === 'Vazao' && !userEditingFields.has('flow-rate')) {
-                            const flowInput = document.getElementById('flow-rate');
-                            if (flowInput && value !== undefined) {
-                                flowInput.value = parseFloat(value);
-                            }
-                        }
-                        
-                        if (key === 'Tempo_de_volta_100' && !userEditingFields.has('base-rotation-time')) {
-                            const timeInput = document.getElementById('base-rotation-time');
-                            if (timeInput && value !== undefined) {
-                                timeInput.value = parseFloat(value);
-                            }
-                        }
-                    }
-                });
-                
-                // ===== ATUALIZAR CHECKBOXES E INPUTS DA PROGRAMAÇÃO =====
-                // Chama a função para atualizar os checkboxes após processar todos os dados
-                if (scheduleData.daysMask !== null || scheduleData.startTime || scheduleData.endTime) {
-                    console.log('Atualizando formulário de programação com:', scheduleData);
-                    updateScheduleCheckboxes(scheduleData.daysMask, scheduleData.startTime, scheduleData.endTime);
-                }
-                
-                // Atualizar timestamp se não recebido
-                if (!data.Ultima_atualizacao) {
-                    const now = new Date();
-                    const timestamp = `${now.getDate().toString().padStart(2, '0')}/${(now.getMonth() + 1).toString().padStart(2, '0')}/${now.getFullYear()} ${now.getHours().toString().padStart(2, '0')}:${now.getMinutes().toString().padStart(2, '0')}:${now.getSeconds().toString().padStart(2, '0')}`;
-                    statusElements.datetime.textContent = timestamp + ' (Sistema)';
-                }
-            }
-            
-            // ===== CONEXÃO MQTT =====
-            
+            // Conexão MQTT otimizada
             function connectToBroker() {
-                logMessage('Sistema', `Conectando ao broker: ${MQTT_CONFIG.BROKER_URL}`);
+                const brokerUrl = MQTT_CONFIG.BROKER_URL;
+                const commandTopic = MQTT_CONFIG.COMMAND_TOPIC;
+                const statusTopic = MQTT_CONFIG.STATUS_TOPIC;
+                const onlineTopic = MQTT_CONFIG.ONLINE_TOPIC;
+                const configTopic = MQTT_CONFIG.CONFIG_TOPIC;
+                const username = MQTT_CONFIG.USERNAME;
+                const password = MQTT_CONFIG.PASSWORD;
+                
+                addMessage('Sistema', `Conectando ao broker: ${brokerUrl}`);
                 elements.connectionStatusText.textContent = 'Conectando...';
                 
                 try {
@@ -1506,103 +1175,95 @@
                         clean: true,
                         reconnectPeriod: 3000,
                         clientId: MQTT_CONFIG.CLIENT_ID,
-                        username: MQTT_CONFIG.USERNAME,
-                        password: MQTT_CONFIG.PASSWORD
+                        username: username,
+                        password: password
                     };
                     
-                    mqttClient = mqtt.connect(MQTT_CONFIG.BROKER_URL, options);
+                    mqttClient = mqtt.connect(brokerUrl, options);
                     
                     mqttClient.on('connect', function() {
                         updateConnectionStatus(true);
-                        logMessage('Sistema', 'Conectado ao broker MQTT com sucesso');
+                        addMessage('Sistema', 'Conectado com sucesso ao broker MQTT');
                         
-                        const topics = [
-                            MQTT_CONFIG.STATUS_TOPIC,
-                            MQTT_CONFIG.ONLINE_TOPIC,
-                            MQTT_CONFIG.CONFIG_TOPIC
-                        ];
+                        const topics = [statusTopic, onlineTopic, configTopic];
                         
                         topics.forEach(topic => {
                             mqttClient.subscribe(topic, { qos: 1 }, function(err) {
                                 if (!err) {
-                                    logMessage('Sistema', `Subscrito em: ${topic}`);
+                                    addMessage('Sistema', `Inscrito no tópico: ${topic}`);
                                 } else {
-                                    showError(`Erro ao subscrever em ${topic}: ${err.message}`);
+                                    showError(`Falha ao inscrever no tópico ${topic}: ${err.message}`);
                                 }
                             });
                         });
                         
-                        // Aguardar alguns segundos para receber dados automáticos
-                        setTimeout(() => {
-                            if (elements.configStatus) {
-                                elements.configStatus.innerHTML = 
-                                    '<div style="color: #4CAF50;">✓ Conectado - Recebendo dados automáticos</div>' +
-                                    '<div style="color: #2196F3; margin-top: 10px;">📊 Dados de configuração atualizados via status</div>';
-                            }
-                        }, 3000);
+                        setTimeout(requestCurrentConfig, 1000);
                     });
                     
                     mqttClient.on('message', function(topic, message) {
                         const payload = message.toString();
-                        logMessage(`RX ${topic}`, payload);
+                        addMessage(topic, payload);
                         
                         try {
-                            const data = JSON.parse(payload);
-                            
-                            if (topic === MQTT_CONFIG.STATUS_TOPIC) {
-                                updateStatusDisplay(data);
-                            } else if (topic === MQTT_CONFIG.ONLINE_TOPIC) {
-                                if (data.hasOwnProperty('online')) {
-                                    updateDeviceOnlineStatus(data.online);
+                            if (topic === statusTopic) {
+                                const statusData = JSON.parse(payload);
+                                updateStatusDisplay(statusData);
+                            } 
+                            else if (topic === onlineTopic) {
+                                const onlineData = JSON.parse(payload);
+                                if (onlineData.hasOwnProperty('online')) {
+                                    updateDeviceOnlineStatus(onlineData.online);
                                 }
-                            } else if (topic === MQTT_CONFIG.CONFIG_TOPIC) {
-                                // Processar como dados de status normais
-                                updateStatusDisplay(data);
+                            }
+                            else if (topic === configTopic) {
+                                const configData = JSON.parse(payload);
+                                processReceivedConfig(configData);
                             }
                         } catch (e) {
-                            console.warn('Payload não é JSON válido:', payload);
+                            console.warn('Mensagem não é JSON válido:', payload);
                         }
                     });
                     
                     mqttClient.on('error', function(err) {
-                        showError(`Erro MQTT: ${err.message}`);
+                        showError(`Erro de conexão MQTT: ${err.message}`);
                         updateConnectionStatus(false);
                         elements.connectionStatusText.textContent = 'Erro de conexão';
                     });
                     
                     mqttClient.on('close', function() {
-                        logMessage('Sistema', 'Conexão MQTT fechada');
+                        addMessage('Sistema', 'Conexão com o broker fechada');
                         updateConnectionStatus(false);
                         attemptReconnect();
                     });
                     
                     mqttClient.on('offline', function() {
-                        logMessage('Sistema', 'Cliente MQTT offline');
+                        addMessage('Sistema', 'Cliente MQTT offline');
                         updateConnectionStatus(false);
                         elements.connectionStatusText.textContent = 'Offline';
                     });
                     
                     mqttClient.on('reconnect', function() {
-                        logMessage('Sistema', 'Tentando reconectar...');
+                        addMessage('Sistema', 'Tentando reconectar...');
                         elements.connectionStatusText.textContent = 'Reconectando...';
                     });
                     
                 } catch (error) {
                     showError(`Falha ao conectar: ${error.message}`);
                     updateConnectionStatus(false);
+                    elements.connectionStatusText.textContent = 'Falha na conexão';
                 }
             }
             
             function attemptReconnect() {
                 if (reconnectAttempts < maxReconnectAttempts && !isConnected) {
                     reconnectAttempts++;
-                    logMessage('Sistema', `Tentativa de reconexão ${reconnectAttempts}/${maxReconnectAttempts}`);
+                    addMessage('Sistema', `Tentativa de reconexão ${reconnectAttempts}/${maxReconnectAttempts}...`);
                     setTimeout(() => {
                         if (!isConnected) connectToBroker();
-                    }, 3000 + (reconnectAttempts * 2000));
+                    }, 5000 * reconnectAttempts);
                 } else if (!isConnected) {
-                    logMessage('Sistema', 'Máximo de tentativas de reconexão atingido');
-                    elements.connectionStatusText.textContent = 'Falha na reconexão';
+                    addMessage('Sistema', 'Número máximo de tentativas de reconexão atingido');
+                    elements.connectionStatusText.textContent = 'Falha na conexão';
                 }
             }
             
@@ -1610,6 +1271,7 @@
                 if (mqttClient) {
                     mqttClient.end(true);
                     mqttClient = null;
+                    addMessage('Sistema', 'Desconectado do broker MQTT');
                     updateConnectionStatus(false);
                     showSuccess('Desconectado do broker MQTT');
                 }
@@ -1624,146 +1286,259 @@
                 if (mqttClient && isConnected) {
                     mqttClient.publish(topic, message, { qos: 1 }, function(err) {
                         if (err) {
-                            showError(`Erro ao publicar: ${err.message}`);
+                            showError(`Erro ao enviar comando: ${err.message}`);
                         } else {
-                            logMessage(`TX ${topic}`, message);
+                            addMessage(`Enviado para ${topic}`, message);
                         }
                     });
                 } else {
-                    showError('MQTT não conectado');
+                    showError('Não conectado ao broker MQTT');
                 }
             }
             
-            // ===== EVENT LISTENERS =====
+            function requestCurrentConfig() {
+                publishMessage(MQTT_CONFIG.CONFIG_TOPIC, JSON.stringify({
+                    action: "get_config",
+                    timestamp: Date.now()
+                }));
+                showSuccess('Solicitação de configurações enviada');
+            }
             
+            // Função EXPANDIDA para atualizar status
+            function updateStatusDisplay(data) {
+                const mappings = {
+                    // Campos básicos existentes
+                    'Status': 'status',
+                    'Nome_do_equipamento': 'equipmentName',
+                    'Direçao': 'direction',
+                    'Direcao': 'direction',
+                    'Percentimetro': 'percentage',
+                    'Agua': 'water',
+                    'Pressao': 'pressure',
+                    'Lamina': 'waterLayer',
+                    'Parada_por_grau': 'degreeStop',
+                    'Grau_alvo': 'targetDegree',
+                    'Parado_por_grau': 'stoppedByDegree',
+                    'Posicao_atual': 'position',
+                    'Ultima_atualização': 'datetime',
+                    'Ultima_atualizacao': 'datetime',
+                    // === NOVOS CAMPOS ADICIONADOS ===
+                    'Alimentacao': 'powerSupply',
+                    'Em_ciclo': 'inCycle',
+                    'Rele_ativo': 'relayState',
+                    'Operacao_programada': 'scheduledOperation',
+                    'GPS_sincronizado': 'gpsSync',
+                    'LoRa_conectado': 'loraStatus',
+                    // === CAMPOS DE PROGRAMAÇÃO ===
+                    'Programacao_ativa': 'scheduleEnabledText',
+                    'Hora_inicio': 'scheduleTimeText',
+                    'Hora_fim': 'scheduleTimeText',
+                    'Dias_programados': 'scheduleDaysText',
+                    'Hoje_programado': 'todayScheduledText',
+                    'No_horario_programado': 'inScheduledTimeText',
+                    'Operacao_manual': 'manualOperationText'
+                };
+                
+                Object.entries(data).forEach(([key, value]) => {
+                    const elementKey = mappings[key];
+                    if (elementKey && statusElements[elementKey]) {
+                        let displayValue = value;
+                        
+                        if (key === 'Percentimetro') displayValue += '%';
+                        else if (key === 'Grau_alvo' || key === 'Posicao_atual') displayValue += '°';
+                        
+                        // === TRATAMENTO ESPECIAL PARA HORÁRIOS ===
+                        if (key === 'Hora_inicio' && data['Hora_fim']) {
+                            statusElements.scheduleTimeText.textContent = `${data['Hora_inicio']} às ${data['Hora_fim']}`;
+                            return;
+                        }
+                        if (key === 'Hora_fim') return; // Já processado acima
+                        
+                        statusElements[elementKey].textContent = displayValue;
+                        
+                        if (key === 'Nome_do_equipamento') {
+                            const newEquipmentName = value.toString().trim();
+                            if (newEquipmentName && newEquipmentName !== currentEquipmentName) {
+                                currentEquipmentName = newEquipmentName;
+                                updateSubtitle();
+                                const equipmentNameInput = document.getElementById('equipment-name');
+                                if (equipmentNameInput) {
+                                    equipmentNameInput.value = currentEquipmentName;
+                                }
+                                if (marker) {
+                                    marker.bindPopup(`${currentEquipmentName} - Pivô de Irrigação`);
+                                }
+                            }
+                        }
+                        
+                        if (key === 'Agua') {
+                            const waterBtn = document.getElementById('water-btn');
+                            const isWaterOn = value.toUpperCase() === 'LIGADA' || value.toUpperCase() === 'ON';
+                            waterBtn.innerHTML = isWaterOn ? 
+                                '<i class="fas fa-tint"></i> Água' : 
+                                '<i class="fas fa-tint-slash"></i> Água';
+                            waterState = isWaterOn;
+                        }
+                        
+                        // === ATUALIZAR SWITCHES COM BASE NO STATUS ===
+                        if (key === 'Parada_por_grau') {
+                            const sisToggle = document.getElementById('sis-toggle');
+                            const sisStatusText = document.getElementById('sis-status-text');
+                            const isActive = value.toUpperCase() === 'ATIVADA';
+                            sisToggle.checked = isActive;
+                            sisStatusText.textContent = isActive ? 'Ativado' : 'Desativado';
+                            sisEnabled = isActive;
+                        }
+                        
+                        if (key === 'Programacao_ativa') {
+                            const scheduleToggle = document.getElementById('schedule-toggle');
+                            const scheduleStatusText = document.getElementById('schedule-status-text');
+                            const isActive = value.toUpperCase() === 'SIM';
+                            scheduleToggle.checked = isActive;
+                            scheduleStatusText.textContent = isActive ? 'Ativado' : 'Desativado';
+                            scheduleEnabled = isActive;
+                        }
+                    }
+                });
+                
+                if (!data.Ultima_atualização && !data.Ultima_atualizacao) {
+                    const now = new Date();
+                    const timestamp = `${now.getDate().toString().padStart(2, '0')}/${(now.getMonth() + 1).toString().padStart(2, '0')}/${now.getFullYear()} ${now.getHours().toString().padStart(2, '0')}:${now.getMinutes().toString().padStart(2, '0')}:${now.getSeconds().toString().padStart(2, '0')}`;
+                    statusElements.datetime.textContent = timestamp + ' (Sistema)';
+                }
+            }
+            
+            // Validação numérica
+            function validateNumericInput(value, min, max, fieldName) {
+                const num = parseFloat(value);
+                if (isNaN(num)) {
+                    showError(`${fieldName} deve ser um número válido`);
+                    return false;
+                }
+                if (min !== undefined && num < min) {
+                    showError(`${fieldName} deve ser maior ou igual a ${min}`);
+                    return false;
+                }
+                if (max !== undefined && num > max) {
+                    showError(`${fieldName} deve ser menor ou igual a ${max}`);
+                    return false;
+                }
+                return true;
+            }
+            
+            // Configurar event listeners - EXPANDIDO
             function setupEventListeners() {
-                console.log('Configurando event listeners...');
-                
-                // Verificação de elementos essenciais
-                const criticalElements = ['sis-toggle', 'schedule-toggle', 'start-btn', 'stop-btn'];
-                const missingElements = criticalElements.filter(id => !document.getElementById(id));
-                if (missingElements.length > 0) {
-                    console.error('Elementos críticos não encontrados:', missingElements);
-                }
-                
-                // Switch SIS
+                // Switch do SIS
                 const sisToggle = document.getElementById('sis-toggle');
-                const sisText = document.getElementById('sis-status-text');
+                const sisStatusText = document.getElementById('sis-status-text');
                 
-                if (sisToggle && sisText) {
-                    sisToggle.addEventListener('change', function() {
-                        sisEnabled = this.checked;
-                        publishMessage(MQTT_CONFIG.COMMAND_TOPIC, `Q:${sisEnabled ? 1 : 0}`);
-                        sisText.textContent = sisEnabled ? 'Ativado' : 'Desativado';
-                        showSuccess(`SIS ${sisEnabled ? 'ativado' : 'desativado'}`);
-                    });
-                }
+                sisToggle.addEventListener('change', function() {
+                    sisEnabled = this.checked;
+                    const command = `Q:${sisEnabled ? 1 : 0}`;
+                    publishMessage(MQTT_CONFIG.COMMAND_TOPIC, command);
+                    sisStatusText.textContent = sisEnabled ? 'Ativado' : 'Desativado';
+                    showSuccess(`SIS ${sisEnabled ? 'ativado' : 'desativado'}`);
+                });
                 
-                // Switch Programação
+                document.querySelector('#sis-toggle + .slider').addEventListener('click', function(e) {
+                    e.stopPropagation();
+                    sisToggle.checked = !sisToggle.checked;
+                    const event = new Event('change');
+                    sisToggle.dispatchEvent(event);
+                });
+                
+                // Switch da Programação
                 const scheduleToggle = document.getElementById('schedule-toggle');
-                const scheduleText = document.getElementById('schedule-status-text');
+                const scheduleStatusText = document.getElementById('schedule-status-text');
                 
-                if (scheduleToggle && scheduleText) {
-                    scheduleToggle.addEventListener('change', function() {
-                        scheduleEnabled = this.checked;
-                        publishMessage(MQTT_CONFIG.COMMAND_TOPIC, `E:${scheduleEnabled ? 1 : 0}`);
-                        scheduleText.textContent = scheduleEnabled ? 'Ativado' : 'Desativado';
-                        showSuccess(`Programação ${scheduleEnabled ? 'ativada' : 'desativada'}`);
-                    });
-                }
+                scheduleToggle.addEventListener('change', function() {
+                    scheduleEnabled = this.checked;
+                    const command = `E:${scheduleEnabled ? 1 : 0}`;
+                    publishMessage(MQTT_CONFIG.COMMAND_TOPIC, command);
+                    scheduleStatusText.textContent = scheduleEnabled ? 'Ativado' : 'Desativado';
+                    showSuccess(`Programação ${scheduleEnabled ? 'ativada' : 'desativada'}`);
+                });
                 
-                // Botões de conexão
-                elements.disconnectBtn?.addEventListener('click', disconnectFromBroker);
-                elements.reconnectBtn?.addEventListener('click', reconnectToBroker);
+                document.querySelector('#schedule-toggle + .slider').addEventListener('click', function(e) {
+                    e.stopPropagation();
+                    scheduleToggle.checked = !scheduleToggle.checked;
+                    const event = new Event('change');
+                    scheduleToggle.dispatchEvent(event);
+                });
                 
-                // Comandos básicos do sistema
-                const basicCommands = {
-                    'start-btn': { cmd: 'L', msg: 'Sistema Iniciado' },
-                    'stop-btn': { cmd: 'D', msg: 'Sistema Parado' },
-                    'forward-btn': { cmd: 'A', msg: 'Direção: Avanço' },
-                    'reverse-btn': { cmd: 'R', msg: 'Direção: Reversão' },
+                // Conectar/Desconectar
+                elements.disconnectBtn.addEventListener('click', disconnectFromBroker);
+                elements.reconnectBtn.addEventListener('click', reconnectToBroker);
+                
+                // Solicitar configurações
+                document.getElementById('request-config').addEventListener('click', requestCurrentConfig);
+                
+                // Comandos do sistema unificados
+                const commands = {
+                    'start-btn': { cmd: 'L', msg: 'Iniciar Sistema' },
+                    'stop-btn': { cmd: 'D', msg: 'Parar Sistema' },
+                    'forward-btn': { cmd: 'A', msg: 'Avanço' },
+                    'reverse-btn': { cmd: 'R', msg: 'Reversão' },
                     'water-btn': { 
                         cmd: () => waterState ? 'B' : 'W', 
-                        msg: () => waterState ? 'Água Desligada' : 'Água Ligada' 
+                        msg: () => `${waterState ? 'Desligar' : 'Ligar'} Água` 
                     }
                 };
                 
-                Object.entries(basicCommands).forEach(([btnId, config]) => {
-                    const btn = document.getElementById(btnId);
-                    if (btn) {
-                        btn.addEventListener('click', function() {
-                            const cmd = typeof config.cmd === 'function' ? config.cmd() : config.cmd;
-                            const msg = typeof config.msg === 'function' ? config.msg() : config.msg;
-                            publishMessage(MQTT_CONFIG.COMMAND_TOPIC, cmd);
-                            showSuccess(msg);
-                        });
-                    }
+                Object.entries(commands).forEach(([btnId, config]) => {
+                    document.getElementById(btnId).addEventListener('click', function() {
+                        const cmd = typeof config.cmd === 'function' ? config.cmd() : config.cmd;
+                        const msg = typeof config.msg === 'function' ? config.msg() : config.msg;
+                        publishMessage(MQTT_CONFIG.COMMAND_TOPIC, cmd);
+                        showSuccess(`Comando "${msg}" enviado`);
+                    });
                 });
                 
-                // Controles com valores
+                // Controles com valores unificados - CORRIGIDO
                 const valueControls = [
-                    { btn: 'set-percentage', input: 'percentage', prefix: 'P:', validation: [0.01, 100], unit: '%', name: 'Percentímetro' },
-                    { btn: 'set-water-layer', input: 'water-layer', prefix: 'S:', validation: [0.1], unit: ' mm', name: 'Lâmina de Água' },
-                    { btn: 'set-target-degree', input: 'target-degree', prefix: 'G:', validation: [0, 359.9], unit: '°', name: 'Grau Alvo' },
-                    { btn: 'set-tolerance', input: 'degree-tolerance', prefix: 'Y:', validation: [0.1, 10], unit: '°', name: 'Tolerância' }
+                    { btn: 'set-percentage', input: 'percentage', prefix: 'P:', validation: [0, 100], unit: '%' },
+                    { btn: 'set-water-layer', input: 'water-layer', prefix: 'S:', validation: [0] },
+                    { btn: 'set-target-degree', input: 'target-degree', prefix: 'G:', validation: [0, 359], unit: '°' },
+                    { btn: 'set-tolerance', input: 'degree-tolerance', prefix: 'Y:', validation: [0.1, 10], unit: '°' }
                 ];
                 
                 valueControls.forEach(control => {
-                    const btn = document.getElementById(control.btn);
-                    const input = document.getElementById(control.input);
-                    
-                    if (btn && input) {
-                        btn.addEventListener('click', function() {
-                            const value = input.value.trim();
-                            if (!value) {
-                                showError(`${control.name}: Digite um valor válido`);
-                                return;
-                            }
-                            
-                            if (validateNumericInput(value, control.validation[0], control.validation[1], control.name)) {
-                                publishMessage(MQTT_CONFIG.COMMAND_TOPIC, `${control.prefix}${value}`);
-                                showSuccess(`${control.name} definido: ${value}${control.unit}`);
-                                // Limpar proteção após envio
-                                clearFieldProtection();
-                            }
-                        });
+                    document.getElementById(control.btn).addEventListener('click', function() {
+                        const value = document.getElementById(control.input).value;
+                        const fieldName = document.querySelector(`label[for="${control.input}"]`).textContent;
                         
-                        // Enter key listener
-                        input.addEventListener('keypress', function(e) {
-                            if (e.key === 'Enter') {
-                                btn.click();
-                            }
-                        });
-                    }
+                        if (validateNumericInput(value, control.validation[0], control.validation[1], fieldName)) {
+                            publishMessage(MQTT_CONFIG.COMMAND_TOPIC, `${control.prefix}${value}`);
+                            showSuccess(`${fieldName} definido para ${value}${control.unit || ''}`);
+                        }
+                    });
                 });
                 
-                // Enviar configurações (MODIFICADO)
-                document.getElementById('send-config')?.addEventListener('click', function() {
-                    const equipmentName = document.getElementById('equipment-name')?.value.trim();
-                    const pressureTimeout = document.getElementById('pressure-timeout')?.value.trim();
-                    const pivotRadius = document.getElementById('pivot-radius')?.value.trim();
-                    const flowRate = document.getElementById('flow-rate')?.value.trim();
-                    const baseRotationTime = document.getElementById('base-rotation-time')?.value.trim();
+                // Configurações
+                document.getElementById('send-config').addEventListener('click', function() {
+                    const equipmentNameValue = document.getElementById('equipment-name').value.trim();
                     
                     const config = {
+                        equipment_name: equipmentNameValue,
+                        pressure_timeout: document.getElementById('pressure-timeout').value,
+                        pivot_radius: document.getElementById('pivot-radius').value,
+                        flow_rate: document.getElementById('flow-rate').value,
+                        base_rotation_time: document.getElementById('base-rotation-time').value,
                         timestamp: Date.now(),
                         source: "WebInterface"
                     };
                     
-                    if (equipmentName) config.equipment_name = equipmentName;
-                    if (pressureTimeout) config.pressure_timeout = parseInt(pressureTimeout);
-                    if (pivotRadius) config.pivot_radius = parseFloat(pivotRadius);
-                    if (flowRate) config.flow_rate = parseFloat(flowRate);
-                    if (baseRotationTime) config.base_rotation_time = parseFloat(baseRotationTime);
+                    Object.keys(config).forEach(key => {
+                        if (!config[key] && config[key] !== 0) delete config[key];
+                    });
                     
                     if (Object.keys(config).length <= 2) {
                         showError('Preencha pelo menos um campo de configuração');
                         return;
                     }
                     
-                    // Atualizar nome local se foi alterado
-                    if (equipmentName && equipmentName !== currentEquipmentName) {
-                        currentEquipmentName = equipmentName;
+                    if (equipmentNameValue && equipmentNameValue !== currentEquipmentName) {
+                        currentEquipmentName = equipmentNameValue;
                         updateSubtitle();
                         statusElements.equipmentName.textContent = currentEquipmentName;
                         if (marker) {
@@ -1773,17 +1548,15 @@
                     
                     publishMessage(MQTT_CONFIG.CONFIG_TOPIC, JSON.stringify(config));
                     showSuccess('Configurações enviadas');
-                    // Limpar proteção após envio
-                    clearFieldProtection();
                 });
                 
-                // Enviar programação (MODIFICADO)
-                document.getElementById('send-schedule')?.addEventListener('click', function() {
-                    const startTime = document.getElementById('start-time')?.value;
-                    const stopTime = document.getElementById('stop-time')?.value;
+                // Programação - COMANDOS CORRIGIDOS
+                document.getElementById('send-schedule').addEventListener('click', function() {
+                    const startTime = document.getElementById('start-time').value;
+                    const stopTime = document.getElementById('stop-time').value;
                     
                     if (!startTime || !stopTime) {
-                        showError('Defina os horários de início e parada');
+                        showError('Preencha os horários de início e parada');
                         return;
                     }
                     
@@ -1795,85 +1568,74 @@
                     
                     weekdays.forEach((day, index) => {
                         const checkbox = document.getElementById(day);
-                        if (checkbox?.checked) {
-                            daysMask |= (1 << index);
-                        }
+                        if (checkbox?.checked) daysMask |= (1 << index);
                     });
                     
-                    if (daysMask === 0) {
-                        showError('Selecione pelo menos um dia da semana');
-                        return;
-                    }
-                    
-                    // Enviar comandos de programação
-                    publishMessage(MQTT_CONFIG.COMMAND_TOPIC, `I:${startFormatted}`);
-                    setTimeout(() => publishMessage(MQTT_CONFIG.COMMAND_TOPIC, `J:${stopFormatted}`), 100);
-                    setTimeout(() => publishMessage(MQTT_CONFIG.COMMAND_TOPIC, `K:${daysMask}`), 200);
+                    // === CORREÇÃO: COMANDOS CORRETOS ===
+                    publishMessage(MQTT_CONFIG.COMMAND_TOPIC, `I:${startFormatted}`); // I = Início
+                    publishMessage(MQTT_CONFIG.COMMAND_TOPIC, `J:${stopFormatted}`);  // J = Fim
+                    publishMessage(MQTT_CONFIG.COMMAND_TOPIC, `K:${daysMask}`);       // K = Máscara dias
                     
                     showSuccess(`Programação definida: ${startTime} às ${stopTime}`);
-                    // Limpar proteção após envio
-                    clearFieldProtection();
                 });
                 
-                // Atualizar mapa
-                document.getElementById('update-map')?.addEventListener('click', updateMapLocation);
+                // Mapa
+                document.getElementById('update-map').addEventListener('click', updateMapLocation);
                 
-                console.log('Event listeners configurados com sucesso');
+                // Enter key listeners unificados - EXPANDIDO
+                ['percentage', 'water-layer', 'target-degree', 'degree-tolerance'].forEach(inputId => {
+                    document.getElementById(inputId).addEventListener('keypress', function(e) {
+                        if (e.key === 'Enter') {
+                            const btnMap = {
+                                'percentage': 'set-percentage',
+                                'water-layer': 'set-water-layer',
+                                'target-degree': 'set-target-degree',
+                                'degree-tolerance': 'set-tolerance'
+                            };
+                            document.getElementById(btnMap[inputId]).click();
+                        }
+                    });
+                });
             }
             
-            // ===== INICIALIZAÇÃO =====
+            // Inicialização
+            console.log('Inicializando sistema...');
+            updateConnectionStatus(false);
+            updateDeviceOnlineStatus(false);
+            initTabs();
+            setupEventListeners();
             
-            function initializeSystem() {
-                console.log('=== INICIALIZANDO SISTEMA AGS IRRIGAÇÃO ===');
-                
-                // Verificar dependências
-                if (typeof mqtt === 'undefined') {
-                    showError('Biblioteca MQTT não carregada. Verifique sua conexão.');
-                    return;
-                }
-                
-                if (typeof L === 'undefined') {
-                    console.warn('Biblioteca Leaflet não carregada. Mapa não estará disponível.');
-                }
-                
-                // Configurar estados iniciais
-                updateConnectionStatus(false);
-                updateDeviceOnlineStatus(false);
-                
-                // Inicializar módulos
-                initTabs();
-                setupEventListeners();
-                setupFieldProtection(); // ← ADICIONADO
-                
-                // Preencher campos de configuração MQTT
-                document.getElementById('broker-url').value = MQTT_CONFIG.BROKER_URL;
-                document.getElementById('command-topic').value = MQTT_CONFIG.COMMAND_TOPIC;
-                document.getElementById('status-topic').value = MQTT_CONFIG.STATUS_TOPIC;
-                document.getElementById('online-topic').value = MQTT_CONFIG.ONLINE_TOPIC;
-                document.getElementById('config-topic').value = MQTT_CONFIG.CONFIG_TOPIC;
-                
-                updateSubtitle();
-                
-                // Conectar automaticamente após inicialização
-                setTimeout(() => {
-                    logMessage('Sistema', 'Iniciando conexão automática com broker MQTT...');
-                    connectToBroker();
-                }, 1500);
-                
-                // Timer para atualização periódica de timestamp
-                setInterval(() => {
-                    if (isConnected && statusElements.datetime?.textContent === '--/--/---- --:--:--') {
-                        const now = new Date();
-                        const timestamp = `${now.getDate().toString().padStart(2, '0')}/${(now.getMonth() + 1).toString().padStart(2, '0')}/${now.getFullYear()} ${now.getHours().toString().padStart(2, '0')}:${now.getMinutes().toString().padStart(2, '0')}:${now.getSeconds().toString().padStart(2, '0')}`;
-                        statusElements.datetime.textContent = timestamp + ' (Sistema)';
-                    }
-                }, 10000);
-                
-                console.log('=== SISTEMA AGS IRRIGAÇÃO INICIALIZADO ===');
-            }
+            // Preencher os campos com as configurações embutidas
+            document.getElementById('broker-url').value = MQTT_CONFIG.BROKER_URL;
+            document.getElementById('command-topic').value = MQTT_CONFIG.COMMAND_TOPIC;
+            document.getElementById('status-topic').value = MQTT_CONFIG.STATUS_TOPIC;
+            document.getElementById('online-topic').value = MQTT_CONFIG.ONLINE_TOPIC;
+            document.getElementById('config-topic').value = MQTT_CONFIG.CONFIG_TOPIC;
             
-            // Inicializar quando o DOM estiver completamente carregado
-            initializeSystem();
+            updateSubtitle();
+            
+            setTimeout(() => {
+                if (typeof mqtt !== 'undefined') {
+                    addMessage('Sistema', 'Sistema carregado com sucesso. Conectando automaticamente ao broker MQTT.');
+                } else {
+                    showError('Biblioteca MQTT não carregada. Verifique sua conexão com a internet.');
+                }
+            }, 1000);
+            
+            // Atualização de timestamp
+            setInterval(() => {
+                if (isConnected && statusElements.datetime.textContent === '--/--/---- --:--:--') {
+                    const now = new Date();
+                    const timestamp = `${now.getDate().toString().padStart(2, '0')}/${(now.getMonth() + 1).toString().padStart(2, '0')}/${now.getFullYear()} ${now.getHours().toString().padStart(2, '0')}:${now.getMinutes().toString().padStart(2, '0')}:${now.getSeconds().toString().padStart(2, '0')}`;
+                    statusElements.datetime.textContent = timestamp + ' (Sistema)';
+                }
+            }, 5000);
+            
+            // Conectar automaticamente ao carregar a página
+            setTimeout(() => {
+                addMessage('Sistema', 'Conectando automaticamente ao broker MQTT...');
+                connectToBroker();
+            }, 1000);
         });
     </script>
 </body>
